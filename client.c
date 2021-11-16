@@ -4,7 +4,6 @@
 #define KEYFILE "client.pem"
 #define PASSWORD "password"
 
-
 BIO *bio_err=0;
 
 static char *pass;

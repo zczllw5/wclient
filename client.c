@@ -73,7 +73,7 @@ SSL_CTX *initialize_ctx(keyfile,password)
   char *keyfile;
   char *password;
   {
-    //const struct SSL_METHOD *meth;
+    SSL_METHOD *meth;
     SSL_CTX *ctx;
     
     if(!bio_err){
@@ -89,21 +89,22 @@ SSL_CTX *initialize_ctx(keyfile,password)
     signal(SIGPIPE,sigpipe_handle);
     
     /* Create our context*/
-    //meth= TLS_method();
-    ctx=SSL_CTX_new(TLS_method());
-
+    meth = TLS_method();
+    //meth= SSLv23_method;
+    ctx=SSL_CTX_new(meth);
+    printf("after SSL_CTX_new!\n");
     /* Load our keys and certificates*/
-    if(!(SSL_CTX_use_certificate_chain_file(ctx,
-      keyfile)))
-      berr_exit("Can't read certificate file");
+//    if(!(SSL_CTX_use_certificate_chain_file(ctx,
+//      keyfile)))
+//      berr_exit("Can't read certificate file");
 
-    pass=password;
-    SSL_CTX_set_default_passwd_cb(ctx,
-      password_cb);
-    if(!(SSL_CTX_use_PrivateKey_file(ctx,
-      keyfile,SSL_FILETYPE_PEM)))
-      berr_exit("Can't read key file");
-
+//    pass=password;
+//    SSL_CTX_set_default_passwd_cb(ctx,
+//      password_cb);
+//    if(!(SSL_CTX_use_PrivateKey_file(ctx,
+//      keyfile,SSL_FILETYPE_PEM)))
+//      berr_exit("Can't read key file");
+//
     /* Load the CAs we trust*/
     if(!(SSL_CTX_load_verify_locations(ctx,
       CA_LIST,0)))
@@ -135,17 +136,8 @@ int main(){
     
     //1.send client_hello?
     //SSL_CTX_set_msg_callback()
-    //to do that
-    
+
     //BIO_socket(HOST,PORT);
     
-    
-    //STACK_OF() *sk;
-    
-//    struct stack_st_SSL_CIPHER *sk = SSL_get_ciphers(ssl);
-//    _STACK st ;
-//    while(1){
-        //printf("%p\n", sk);
-        //printf("Contents of structure %s are %_stack", sk, sk->data);
     
 }

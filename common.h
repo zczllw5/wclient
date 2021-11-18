@@ -20,7 +20,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
-#define CA_LIST "root.pem"
+#define CA_LIST "/Users/lian/Documents/UCL/Year4/FYP/topics/v3/IncludedRootsPEM.txt"
 #define HOST	"www.google.com"
 //Client issues TCP connect to Server port 80 (or 443 for HTTPS).
 #define PORT 443

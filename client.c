@@ -1,8 +1,11 @@
 #include "common.h"
-#include <openssl/err.h>
+#include "read_write.h"
 
-#define KEYFILE "client.pem"
-#define PASSWORD "password"
+static char *REQUEST_TEMPLATE=
+   "GET / HTTP/1.0\r\nUser-Agent:"
+   "EKRClient\r\nHost: %s:%d\r\n\r\n";
+
+static char *ciphers="PSK-AES128-CBC-SHA";
 
 BIO *bio_err=0;
 
@@ -27,51 +30,40 @@ int berr_exit(string)
     exit(0);
   }
 
-//every thing build on TCP
-int tcp_connect(host,port)
-  char *host;
-  int port;
+void destroy_ctx(ctx)
+  SSL_CTX *ctx;
   {
-    struct hostent *hp;
-    struct sockaddr_in addr;
+    SSL_CTX_free(ctx);
+    printf("ctx destroied!\n");
+  }
+
+//every thing build on TCP
+int tcp_connect()
+  {
+    struct hostent *hp; // store information about a given host, such as host name, IPv4 address
+    struct sockaddr_in addr; // a transport address and port for the AF_INET address family.
     int sock;
     
-    if(!(hp=gethostbyname(host)))
+    if(!(hp=gethostbyname(HOST))) //gethoseby name is obsolete, tried getaddrinfo still ssl read problem
       berr_exit("Couldn't resolve host");
-    memset(&addr,0,sizeof(addr));
-    addr.sin_addr=*(struct in_addr*)
-      hp->h_addr_list[0];
-    addr.sin_family=AF_INET;
-    addr.sin_port=htons(port);
-
-    if((sock=socket(AF_INET,SOCK_STREAM,
-      IPPROTO_TCP))<0)
+    //printf("hp: %s and its ip address: %c\n",hp->h_name, hp->h_addr_list);
+    memset(&addr,0,sizeof(addr)); //set the first num bytes of the block of memory pointed by addr to the specified value
+    addr.sin_addr=*(struct in_addr*)hp->h_addr_list[0];
+    //printf("addr.sin_addr: %i\n",);
+    addr.sin_family=AF_INET; //the address family for IPv4.
+    addr.sin_port=htons(PORT); //A transport protocol port number.
+    //while ( *argv ) printf( "%s\n", *argv++ );
+    if((sock=socket(AF_INET,SOCK_STREAM,IPPROTO_TCP))<0)
       err_exit("Couldn't create socket");
-    if(connect(sock,(struct sockaddr *)&addr,
-      sizeof(addr))<0)
+    if(connect(sock,(struct sockaddr *)&addr,sizeof(addr))<0)
       err_exit("Couldn't connect socket");
     
-    printf("Sock created!\n");
+    //printf("Sock: %i!\n",sock);
+    //printf("hp: %s and its ip address: %i\n",hp->h_name, hp->h_addr_list);
     return sock;
   }
 
-/*The password code is not thread safe*/
-static int password_cb(char *buf,int num,
-  int rwflag,void *userdata)
-  {
-    if(num<strlen(pass)+1)
-      return(0);
-
-    strcpy(buf,pass);
-    return(strlen(pass));
-  }
-
-static void sigpipe_handle(int x){
-}
-
-SSL_CTX *initialize_ctx(keyfile,password)
-  char *keyfile;
-  char *password;
+SSL_CTX *initialize_ctx()
   {
     SSL_METHOD *meth;
     SSL_CTX *ctx;
@@ -84,60 +76,134 @@ SSL_CTX *initialize_ctx(keyfile,password)
       /* An error write context */
       bio_err=BIO_new_fp(stderr,BIO_NOCLOSE);
     }
-
-    /* Set up a SIGPIPE handler */
-    signal(SIGPIPE,sigpipe_handle);
     
     /* Create our context*/
-    meth = TLS_method();
-    //meth= SSLv23_method;
-    ctx=SSL_CTX_new(meth);
-    printf("after SSL_CTX_new!\n");
-    /* Load our keys and certificates*/
-//    if(!(SSL_CTX_use_certificate_chain_file(ctx,
-//      keyfile)))
-//      berr_exit("Can't read certificate file");
+    //meth = TLS_method();
+    ctx=SSL_CTX_new(SSLv23_client_method());
+    //printf("after SSL_CTX_new!\n");
 
-//    pass=password;
-//    SSL_CTX_set_default_passwd_cb(ctx,
-//      password_cb);
-//    if(!(SSL_CTX_use_PrivateKey_file(ctx,
-//      keyfile,SSL_FILETYPE_PEM)))
-//      berr_exit("Can't read key file");
-//
     /* Load the CAs we trust*/
     if(!(SSL_CTX_load_verify_locations(ctx,
       CA_LIST,0)))
       berr_exit("Can't read CA list");
-#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
-    SSL_CTX_set_verify_depth(ctx,1);
-#endif
-    
+//#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
+    SSL_CTX_set_verify_depth(ctx,1000);
+//#endif
+    printf("ctx initiated!\n");
     return ctx;
   }
 
-int main(){
-    
-    SSL_CTX *ctx;
-    
+/* Check that the common name matches the host name*/
+void check_cert(ssl,host)
+  SSL *ssl;
+  char *host;
+  {
+    X509 *peer;
+    char peer_CN[256];
+    printf("SSL_get_verify_result(ssl): %li\n", SSL_get_verify_result(ssl));
+    if(SSL_get_verify_result(ssl)!=X509_V_OK) //returns the result of the verification of the X509 certificate
+      berr_exit("Certificate doesn't verify");
 
-    //list my cipher suites
-    
-    printf("Begin the game!\n");
-    
-    int soc = tcp_connect(HOST,PORT);
-    
-    printf("What a socket looks like: %i!\n", soc);
-    
-    //initiate a ctx
-    /* Build our SSL context*/
-    ctx=initialize_ctx(KEYFILE,PASSWORD);
-    printf("ctx initiated!\n");
-    
-    //1.send client_hello?
-    //SSL_CTX_set_msg_callback()
+    /*Check the cert chain. The chain length is automatically checked by OpenSSL when
+      we set the verify depth in the ctx */
 
-    //BIO_socket(HOST,PORT);
+    /*Check the common name againest host name*/
+    peer=SSL_get_peer_certificate(ssl); //return a pointer to the X509 certificate the peer presented
+      
+    /*X509_NAME_get_text_by_NID() retrieve the "text" from the first entry in name which matches nid or obj, if no such entry exists -1 is returned*/
+//    int a;
+//    a = X509_NAME_get_text_by_NID(X509_get_subject_name(peer),NID_commonName, peer_CN, 256);
+//    printf("result of X509_NAME_get_text_by_NID: %i!\n", a);
+    //if(strcasecmp(peer_CN,host))
+    //  err_exit("Common name doesn't match host name");
+      
+      printf("Certificate checked!\n");
+  }
+
+void echo(ssl,sock)
+    SSL *ssl;
+    int sock;
+    {
+        printf("In the echo function\n");
+        char buf[BUFSIZZ];
+        int r,len,offset;
+
+        while(1){
+            printf("In the echo function loop\n");
+            /*read data*/
+            printf("r: %i",r);
+            r = SSL_read(ssl,buf,BUFSIZZ);
+
+            switch(SSL_get_error(ssl,r)){
+                case SSL_ERROR_NONE:
+                    len-=r;
+                    break;
+                case SSL_ERROR_ZERO_RETURN:
+                    goto end;
+                default:
+                    berr_exit("SSL read problem");
+            }
+
+            /*now keep writing until we've written everything*/
+            offset=0;
+
+            while(len){
+                r = SSL_write(ssl,buf+offset,len);
+                switch(SSL_get_error(ssl,r)){
+                    case SSL_ERROR_NONE:
+                        len-=r;
+                        offset +=r;
+                        break;
+                    default:
+                        berr_exit("SSL write problem");
+                }
+            }
+        }
+    end:
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+        close(sock);
+    }
+
+int main()
+    {
+        SSL *ssl; //use SSL object to represent an SSL connection
+        SSL_CTX *ctx;
+        BIO *sbio;
+        int sock;
+        char buf[BUFSIZZ];
     
+        /* Build our SSL context by initiate a ctx*/
+        ctx=initialize_ctx();
     
+        sock = tcp_connect();//connect to the server
+    
+        /*need to implement Seed random number generator: Srng*/
+    
+        /*set cipher suites: could be set in ctx or pre-connection*/
+        if(ciphers){
+            SSL_CTX_set_cipher_list(ctx,ciphers);
+            //printf("ciphers: %s\n",ciphers);
+            //need to verify what is my default cipher
+        }
+    
+        ssl = SSL_new(ctx); //creat a new SSL structure to hold the TLS/SSL connection
+    
+        /*Do NOT directly attache SSL object to tcp connect, create a BIO object using the socket and then attach the SSL object to BIO. 1 BIO provide a layer of abstraction of I/O. 2 Allow OpenSSL do SSL handshakes on deviced that aren't socket at all */
+        sbio=BIO_new_socket(sock,BIO_NOCLOSE);  //returns a socket BIO using sock and close_flag
+        SSL_set_bio(ssl,sbio,sbio); //connects the rbio and the wbio, and transfers the ownership to ssl
+        printf("after ssl_set_bio!\n");
+
+        if (SSL_connect (ssl) <=0) //connected by blocking
+            berr_exit("SSL connect error");
+        //check_cert(ssl,HOST);
+    
+        /*read data*/
+        //echo(ssl,sock);
+        //read_write(ssl,sock);
+    
+        /*make the HTTP request*/
+        //http_request(ssl);
+        //echo
+        destroy_ctx(ctx);
 }

@@ -7,14 +7,17 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <errno.h>
 
+#include <regex.h> 
+
 #define HOST    "www.google.com"
 #define PORT 443
 #define BUFSIZZ 1024
-#define CIPHER_LIST "TLS_AES_256_GCM_SHA384"
+#define CIPHER_LIST "TLS_RSA_WITH_AES_256_CBC_SHA:TLS_NULL_WITH_NULL_NULL"
 
 BIO *bio_err=0;
 
@@ -103,21 +106,183 @@ int hostname_to_ip(char *hostname, char *ip)
     return 0;
 }
 
+int match_host_by_regex(char *fileBuff){
+    regex_t    preg;
+    //char       *fileStream = "a very simple simple simple string";
+    char       *pattern = "\\(?<=,)[A-Za-z0-9_.]+";                
+    int        rc;
+    size_t     nmatch = 2;
+    regmatch_t pmatch[2];
+ 
+   if (0 != (rc = regcomp(&preg, pattern, 0))) {
+      printf("regcomp() failed, returning nonzero (%d)\n", rc);
+      exit(EXIT_FAILURE);
+   }
+ 
+   if (0 != (rc = regexec(&preg, fileBuff, nmatch, pmatch, 0))) {
+      printf("Failed to match '%s' with '%s',returning %d.\n",
+             fileBuff, pattern, rc);
+   }
+//    else {
+//       printf("With the whole expression, "
+//              "a matched substring \"%.*lld\" is found at position %d to %d.\n",
+//              pmatch[0].rm_eo - pmatch[0].rm_so, &fileBuff[pmatch[0].rm_so],
+//              pmatch[0].rm_so, pmatch[0].rm_eo - 1);
+//       printf("With the sub-expression, "
+//              "a matched substring \"%.*lld\" is found at position %d to %d.\n",
+//              pmatch[1].rm_eo - pmatch[1].rm_so, &fileBuff[pmatch[1].rm_so],
+//              pmatch[1].rm_so, pmatch[1].rm_eo - 1);
+//    }
+   regfree(&preg);
+   return 0;
+}
+
+int get_the_nth_host_name(int index, char *host){
+    FILE *fp;
+    char *buff;
+    char indexS[3];
+
+    long lSize;
+    size_t fileStream;             // represent the size of any object in bytes
+    char *pch;
+    /* get the host name pass it to host to ip funciton */
+    fp = fopen("top-1h.csv", "r");
+    if(fp == NULL) {
+        err_exit("can't open file");
+    }
+    
+    /*read line by ling and store stream in ssize_t. Not easy to transfer sszie_t to string when compare stringf */
+    // char *line = NULL;
+    // size_t len = 0;
+    // ssize_t read;
+    // while ((read = getline(&line, &len, fp)) != -1) {
+    //     //printf("Retrieved line of length %zu :\n", read);
+    //     //printf("%s", line);
+    //     //sprintf(indexS, "%d", index);     
+    //     if(strstr(read, indexS) != NULL){
+    //         pch = strstr(buff, indexS);
+    //         printf("the hose name: %s", pch);
+    //     };
+    // }
+
+    /*get all stream*/
+
+    // obtain file size:
+    fseek (fp, 0, SEEK_END); //Reposition stream position indicator
+    lSize = ftell (fp);      //Get current position in stream
+    rewind (fp);             //Set position of stream to the beginning
+
+    // // allocate memory to contain the whole file:
+    buff = (char*) malloc (sizeof(char)*lSize);
+    if (buff == NULL) {err_exit("Memory error");}
+
+    // copy the file into the buffer:
+    fileStream = fread (buff,1,lSize,fp);  //Read block of data from stream return size_t
+    if (fileStream != lSize) {
+        err_exit("Reading error");
+    }
+    //printf("buff: %s\n",buff);
+
+    /*get the host name by index*/
+    
+    //get the position by index
+    sprintf(indexS, "%d", index);     
+    pch = strstr(buff, indexS);                             //Locate substring
+    //printf("pch: the %ith website: %s\n", index, (pch));
+
+
+    //use sscanf() read one line  
+    if(sscanf(pch, "%s", buff) ==0){
+        err_exit("fscanf error");
+    };
+    //printf("First word = \n%s\n", buff);
+
+    //slipt the line by ','  method1: strtok method2 split()
+    char *tokens;
+    tokens  = strtok(buff, ",");
+    printf("tokens: %s\n", tokens);
+
+    tokens  = strtok(NULL, ",");
+    //printf("second token which is host: %s\n", host);
+
+    strcpy(host, tokens);
+    //scanf()
+    // rewind(fp);
+    // if(fscanf(fp, "%s", buff) ==0){
+    //     err_exit("fscanf error");
+    // };
+    // printf("First word = \n%s\n", buff);
+
+    //match_host_by_regex(buff);
+
+    //strcpy(host,(pch));
+    //printf("host: %s\n",host);
+
+    //method: read one line  and slipt the line by ',' the later part is host 
+
+    /*read one line*/
+    // char * line = NULL;
+    // size_t len = 0;
+    // ssize_t read;
+    // read = getline(&line, &len, &pch);
+    // printf("Retrieved line of length %zu:\n", read);
+    // printf("%s", line);
+
+
+    //char *mystring;
+    //mystring = (char*) malloc (sizeof(char)*lSize);
+    //fgets(mystring, INT_MAX, fp);
+    //puts (mystring);
+    //printf("the current line: %s\n",mystring);
+
+    //char current[]  = host.Split(' ');
+ 
+    // while(index <= 100){
+    //     fgets(buff, 255, fp);
+    //     printf("the website: %s\n",buff);
+    //     pch = strstr(buff, ",");
+    //     printf("the %ith website: %s\n", index, (pch+1));
+    //     //strcpy(host,buff);
+    //     //printf("the website: %s\n",website);
+    //     index++;
+    // }
+    
+    fclose(fp);
+    return 0;
+}
+
+void HostNametoSessionCipher(char *host, char *sessionCipher){
+    char *result;
+
+    
+    strcpy(sessionCipher,result);
+}
+
+void iteration100(){
+
+}
+
 int main()
     {
         SSL *myssl; /*use SSL object to represent an SSL connection*/
         SSL_CTX *ctx;
         BIO *mybio;
+        SSL_SESSION *ses;
      
         int socketfd,err,ret;
         char buf[BUFSIZZ];
         
         struct sockaddr_in socketaddr;
-        
+
+        char host[15];
         char ip[100];
-            
-        hostname_to_ip(HOST, ip);
-        printf("%s resolved to %s\n" ,HOST,ip);
+        const char *sessionCipher;
+        
+        get_the_nth_host_name(84,host);
+        printf("host found by index: %s\n", host);    
+
+        hostname_to_ip(host, ip);
+        printf("%s resolved to %s\n", host, ip);
         
         socketaddr.sin_family=AF_INET;
         socketaddr.sin_addr.s_addr=inet_addr(ip);
@@ -132,15 +297,18 @@ int main()
             exit(0);
         }
         
-        //printf("cipher %s.\n",OSSL_default_ciphersuites());
+        printf("CIPHER_LIST: %s.\n",CIPHER_LIST);
         /*OSSL_default_ciphersuites() returns TLSv1.3 ciphersuites*/
-        if(SSL_CTX_set_ciphersuites(ctx,OSSL_default_ciphersuites()) <= 0)
+        if(SSL_CTX_set_ciphersuites(ctx,CIPHER_LIST) == 0)
             err_exit("Error setting the cipher list.\n");
         
-//        if(!SSL_CTX_set_min_proto_version(ctx,0))
-//            err_exit("set min version error\n");
-//        if(!SSL_CTX_set_max_proto_version(ctx,0))
-//            err_exit("set max version error");
+        if(!SSL_CTX_set_min_proto_version(ctx,0))
+            err_exit("set min version error\n");
+        err = SSL_CTX_set_max_proto_version(ctx,TLS1_2_VERSION);
+        if(err==1)
+            printf("SSL_CTX_set_max_proto_version succeed: %d!\n",TLS1_2_VERSION);
+        if(err==0)
+            err_exit("SSL_CTX_set_max_proto_version error");
     
         /*SSL_CTX_set_options(3): disable specific protocol versions*/
                 
@@ -168,11 +336,11 @@ int main()
         /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
         mybio=BIO_new(BIO_s_connect());
         SSL_set_bio(myssl,mybio,mybio);
-        printf("Prepare SSL connection on socket %x,Version: %s,ciphers:%s,bio:%s,file descriptor:%i\n",
-               socketfd,
-               SSL_get_version(myssl)
-               ,SSL_get_ciphers(myssl)
-               ,SSL_get_rbio(myssl)
+        printf("Prepare SSL connection on socket: %x, Version: %li, first cipher: %s, file descriptor:%i\n",
+               socketfd
+               ,SSL_CTX_get_max_proto_version(ctx)
+               ,SSL_get_cipher_list(myssl,0)
+               //,SSL_get_rbio(myssl)
                ,SSL_get_fd(myssl)
                );
 
@@ -185,17 +353,36 @@ int main()
 
         /*Connect to the server, SSL layer.*/
         ret = SSL_connect(myssl);
-        ssl_error(ctx,myssl,ret);
-                
-        //SSL_SESSION_print_fp(stdout,)/*stdout to the console*/
-//        if(ret!=1)
-//            printf("SSL_connect not succeed");
-        //printf("after SSL_connect\n");
         //ssl_error_exit(ctx,myssl,ret);
-        printf("after SSL_conect\n");
         
+        ses = SSL_get1_session(myssl);
         
+        sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   
+        printf("%s\n", sessionCipher);
 
+        /*get the session ciher and find weather if the server forced PSK*/
+        if(strstr(CIPHER_LIST, sessionCipher) != NULL){
+            printf("session cipher in the CIPHER_LIST\n");
+        } else {
+            printf("session cipher NOT in the CIPHER_LIST\n");
+            if(strstr(sessionCipher,"ECDHE") != NULL){
+                printf("forced PSK\n");
+            }
+        }
+
+        /*print session in a file*/
+        // fp = fopen("sessionInfo.txt", "r+");
+        
+        // err = SSL_SESSION_print_fp(fp,ses);  /*stdout to the console*/
+        // if(err== 0)
+        //     err_exit("SSL_SESSION_print_fp error\n");
+        // else if(err==1)
+        //     printf("SSL_SESSION_print_fp succeed\n");
+
+        //fclose(fp);
+
+        
+        
         close(socketfd);
         SSL_free(myssl);
         SSL_CTX_free(ctx);

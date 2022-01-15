@@ -12,14 +12,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 
-#include <regex.h> 
-
-#define HOST    "www.google.com"
 #define PORT 443
-#define BUFSIZZ 1024
-#define CIPHER_LIST1 "TLS_RSA_WITH_AES_256_CBC_SHA:TLS_NULL_WITH_NULL_NULL"
-#define CIPHER_LIST2 "TLS_RSA_WITH_AES256-SHA256"
-
 
 BIO *bio_err=0;
 
@@ -132,9 +125,8 @@ int get_the_nth_host_name(int index, char *host){
     //printf("tokens: %s\n", tokens);
 
     tokens  = strtok(NULL, ",");
-    //printf("second token which is host: %s\n", host);
-
     strcpy(host, tokens);
+    printf("%ith host: %s  ", index, host);
     
     fclose(fp);
     return 0;
@@ -189,7 +181,7 @@ int ip_connect_to_host(char *ip){
             exit(0);
         }
         else if(err ==0)
-            printf("TCP/IP connect succeed!\n");
+            printf("TCP/IP connected!\n");
 
     return socketfd;
 }
@@ -206,37 +198,6 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     return ctx;
 }
 
-void set_cipher_suites(SSL_CTX *ctx){
-    int err;
-    /*OSSL_default_ciphersuites() returns TLSv1.3 ciphersuites*/
-    err = SSL_CTX_set_ciphersuites(ctx,CIPHER_LIST1);
-    if(err == 0)
-        err_exit("Error setting the cipher list.\n");
-    else if(err == 1)
-        printf("some ciher selected.\n");
-}
-
-SSL_CTX *set_protocol_version(SSL_CTX *ctx){
-    int err;
-
-    err = SSL_CTX_set_min_proto_version(ctx,0);             //0 will enable protocol versions down to the lowest version
-        if(err==0)
-            err_exit("set min version error\n");
-    
-    err = SSL_CTX_set_max_proto_version(ctx,TLS1_2_VERSION);
-        if(err==1)
-            printf("SSL_CTX_set_max_proto_version succeed: %d!\n",TLS1_2_VERSION);
-        if(err==0)
-            err_exit("SSL_CTX_set_max_proto_version error");
-    
-        /*SSL_CTX_set_options(3): disable specific protocol versions*/
-                
-        /* Set for server verification*/
-        //SSL_CTX_set_verify(ctx,SSL_VERIFY_NONE,NULL);
-
-    return ctx;
-}
-
 SSL *initialize_ssl_bio_propare_connection(SSL *myssl, SSL_CTX *ctx, int socketfd){
     int err;
     BIO *mybio;
@@ -247,15 +208,6 @@ SSL *initialize_ssl_bio_propare_connection(SSL *myssl, SSL_CTX *ctx, int socketf
     /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
     mybio=BIO_new(BIO_s_connect());
     SSL_set_bio(myssl,mybio,mybio);
-    printf("Prepare SSL connection on socket: %x, Version: %li, 1st cipher: %s, 2nd cipher: %s,3rd cipher: %s,4th cipher: %s,file descriptor:%i\n",
-            socketfd
-            ,SSL_CTX_get_max_proto_version(ctx)
-            ,SSL_get_cipher_list(myssl,0)
-            ,SSL_get_cipher_list(myssl,1)
-            ,SSL_get_cipher_list(myssl,2)
-            ,SSL_get_cipher_list(myssl,3)
-            ,SSL_get_fd(myssl)
-            );
 
     /*Bind the socket to the SSL structure*/
     err = SSL_set_fd(myssl,socketfd);
@@ -267,40 +219,110 @@ SSL *initialize_ssl_bio_propare_connection(SSL *myssl, SSL_CTX *ctx, int socketf
     return myssl;
 }
 
-const char *get_session_cipher(SSL *ssl, const char *sessionCipher){
+SSL_CTX *set_protocol_version(SSL_CTX *ctx){
+    int err;
+
+    err = SSL_CTX_set_min_proto_version(ctx,0);             //0 will enable protocol versions down to the lowest version
+    if(err==0)
+        err_exit("set min version error\n");
+    
+    err = SSL_CTX_set_max_proto_version(ctx,TLS1_2_VERSION);
+    if(err==1)
+        printf("SSL_CTX_set_max_proto_version succeed: %d!\n",TLS1_2_VERSION);
+    if(err==0)
+        err_exit("SSL_CTX_set_max_proto_version error");
+
+    /*SSL_CTX_set_options(3): disable specific protocol versions*/
+            
+    /* Set for server verification*/
+    //SSL_CTX_set_verify(ctx,SSL_VERIFY_NONE,NULL);
+
+    return ctx;
+}
+
+void set_cipher_suites(SSL_CTX *ctx, SSL *ssl, const char *cipherList){
+
+    int err;
+
+    err = SSL_set_cipher_list(ssl, cipherList);
+    //err = SSL_CTX_set_cipher_list(ctx, cipherList);
+
+    if(err == 0)
+        err_exit("Error setting the cipher list.\n");
+    else if(err == 1)
+        printf("some ciher selected.\n");
+}
+
+void get_client_cipher_list(SSL *ssl){
+    const char *clientCipherSuite;
+    for(int i =0; i < 10; i++){
+        //stack of available SSL_CIPHERs for ssl
+        //clientCipherSuite = SSL_get_cipher_list(ssl,i);
+        //SSL_get1_supported_ciphers() returns the stack of enabled SSL_CIPHERs for ssl as would be sent in a ClientHello 
+        clientCipherSuite = SSL_get1_supported_ciphers(ssl);
+        
+        if(clientCipherSuite != NULL){
+            printf("the client\'s %ith ciphersuite: %s\n", i+1, clientCipherSuite);
+        }
+        else
+            break;
+    }
+}
+
+void get_session_cipher(SSL_CTX *ctx, SSL *ssl, const char **sessionCipher){
     int ret;
     SSL_SESSION *ses;
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
-    //ssl_error_exit(ctx,myssl,ret);
+    //ssl_error_exit(ctx,ssl,ret);
     
     ses = SSL_get1_session(ssl);
-    sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   
-    printf("the session cipher chosed by server:%s\n", sessionCipher);    
-
-    return sessionCipher;
-}
-
-void iteration100(){
+    *sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   
+    printf("the server choose :%s\n", *sessionCipher);    
 
 }
 
-int main()
-    {
-        SSL *ssl; /*use SSL object to represent an SSL connection*/
-        SSL_CTX *ctx;
-        const SSL_METHOD *meth;
 
-        int socketfd;
-        
-        int err,ret;
+void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *session_cipher){
+    int size = 10000;
+    char *buf, *sharedCiphers;
 
-        char host[15];
-        char ip[100];
-        const char *sessionCipher;
-        
-        get_the_nth_host_name(44,host);
+    /*get the session ciher and find weather if the server forced PSK*/
+    if(strstr(client_cipher_list, session_cipher) != NULL){
+        printf("session cipher IN the cipher list\n");
+    } else {
+        printf("session cipher NOT in the CIPHER_LIST\n");
+        if(strstr(session_cipher,"ECDHE") != NULL){
+            printf("server gave ECDHE cipher which not in the client\'s list\n");
+        }
+    }
+
+    // sharedCiphers = SSL_get_shared_ciphers(ssl, buf, size); 
+    // if(sharedCiphers != NULL)
+    //     printf("shared ciphers are: %s\n", sharedCiphers);
+    // else
+    //     printf("NO shared ciphers. \n");
+}
+
+void get_server_cipher_list(){
+
+}
+
+void iteration(const char* cipher_list){
+
+    SSL *ssl; /*use SSL object to represent an SSL connection*/
+    SSL_CTX *ctx;
+    const SSL_METHOD *meth;
+
+    int socketfd;
+
+    char host[15];
+    char ip[100];
+    const char *sessionCipher;
+    
+    for(int i = 1; i <= 5; i++){
+        get_the_nth_host_name(i, host);
         //printf("host found by index: %s\n", host);    
 
         hostname_to_ip(host, ip);
@@ -308,30 +330,41 @@ int main()
 
         socketfd = ip_connect_to_host(ip);
         //printf("socketfd in main(): %i\n", socketfd); 
-       
+        
         meth = TLS_client_method();
 
         ctx = initial_ctx(meth);
 
-        set_cipher_suites(ctx);
+        ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
 
         set_protocol_version(ctx);
 
-        ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
+        set_cipher_suites(ctx, ssl, cipher_list);
 
-        get_session_cipher(ssl,sessionCipher);
-        printf("the session cipher chosed by server in the main():%s\n", sessionCipher);
-        //tell if the chosed cipher in the provided cipher list by the client
+        get_client_cipher_list(ssl);
 
-        /*get the session ciher and find weather if the server forced PSK*/
-        if(strstr(CIPHER_LIST1, sessionCipher) != NULL){
-            printf("session cipher in the CIPHER_LIST\n");
-        } else {
-            //printf("session cipher NOT in the CIPHER_LIST\n");
-            if(strstr(sessionCipher,"ECDHE") != NULL){
-                printf("forced PSK\n");
-            }
-        }
+        get_session_cipher(ctx, ssl, &sessionCipher);
+        //printf("the session cipher chosed by server in the main():%s\n", sessionCipher);
+
+        get_shared_ciphers(ssl,cipher_list, sessionCipher);
+
+        get_server_cipher_list();  
+    }
+
+    close(socketfd);
+    SSL_free(ssl);
+    SSL_CTX_free(ctx);  
+}
+
+int main()
+    {
+        const char* cipher_list_pfs_and_non_pfs = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384";
+        const char* cipherList2 = "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-GCM-SHA384";
+        const char* cipher_list_tls1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
+        const char* cipher_list_tls1_2 = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:RSA-PSK-AES256-GCM-SHA384:DHE-PSK-AES256-GCM-SHA384:RSA-PSK-CHACHA20-POLY1305:DHE-PSK-CHACHA20-POLY1305:ECDHE-PSK-CHACHA20-POLY1305:AES256-GCM-SHA384:PSK-AES256-GCM-SHA384:PSK-CHACHA20-POLY1305:RSA-PSK-AES128-GCM-SHA256:DHE-PSK-AES128-GCM-SHA256:AES128-GCM-SHA256:PSK-AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:ECDHE-PSK-AES256-CBC-SHA384:ECDHE-PSK-AES256-CBC-SHA:SRP-RSA-AES-256-CBC-SHA:SRP-AES-256-CBC-SHA:RSA-PSK-AES256-CBC-SHA384:DHE-PSK-AES256-CBC-SHA384:RSA-PSK-AES256-CBC-SHA:DHE-PSK-AES256-CBC-SHA:AES256-SHA:PSK-AES256-CBC-SHA384:PSK-AES256-CBC-SHA:ECDHE-PSK-AES128-CBC-SHA256:ECDHE-PSK-AES128-CBC-SHA:SRP-RSA-AES-128-CBC-SHA:SRP-AES-128-CBC-SHA:RSA-PSK-AES128-CBC-SHA256:DHE-PSK-AES128-CBC-SHA256:RSA-PSK-AES128-CBC-SHA:DHE-PSK-AES128-CBC-SHA:AES128-SHA:PSK-AES128-CBC-SHA256:PSK-AES128-CBC-SHA";
+
+
+        iteration(cipher_list_pfs_and_non_pfs);
 
         /*print session in a file*/
         // fp = fopen("sessionInfo.txt", "r+");
@@ -344,8 +377,5 @@ int main()
 
         //fclose(fp);
 
-        close(socketfd);
-        SSL_free(ssl);
-        SSL_CTX_free(ctx);
         exit(0);
 }

@@ -224,21 +224,22 @@ SSL *initialize_ssl_bio_propare_connection(SSL *myssl, SSL_CTX *ctx, int socketf
 }
 
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
+    /*SSL3_VERSION, TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION*/
     int err;
-    int minVersion = SSL3_VERSION;
-    int maxVersion = SSL3_VERSION;
+    int minVersion = TLS1_1_VERSION;
+    int maxVersion = TLS1_2_VERSION;
 
     err = SSL_CTX_set_min_proto_version(ctx,minVersion);             //0 will enable protocol versions down to the lowest version
     if(err==0)
         err_exit("set min version error\n");
-     else if(err==1)
-         printf("min version is: %ld\n",SSL_CTX_get_min_proto_version(ctx));
+//     else if(err==1)
+//         printf("min version is: %ld\n",SSL_CTX_get_min_proto_version(ctx));
     
     err = SSL_CTX_set_max_proto_version(ctx,maxVersion);
     if(err==0)
         err_exit("SSL_CTX_set_max_proto_version error");
-     else if(err==1)
-         printf("max version is: %ld\n",SSL_CTX_get_max_proto_version(ctx));
+//     else if(err==1)
+//         printf("max version is: %ld\n",SSL_CTX_get_max_proto_version(ctx));
 
     /*use server's preference*/
     long int serverList;
@@ -286,7 +287,7 @@ void get_client_cipher_list(SSL *ssl){
 
 void get_session_cipher(SSL_CTX *ctx, SSL *ssl, const char **sessionCipher){
     int ret;
-    SSL_SESSION *ses;
+    const SSL_SESSION *ses;
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
@@ -356,7 +357,7 @@ void iteration(const char* cipher_list){
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
 
-    for(int i =1; i <= 3; i++){
+    for(int i =1; i <=35; i++){
         
         get_the_nth_host_name(i, host);
         //printf("host: %s", host);
@@ -372,12 +373,8 @@ void iteration(const char* cipher_list){
         set_cipher_suites(ctx, ssl, cipher_list);
         
         ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
-
-        
         
         get_client_cipher_list(ssl);
-
-        
 
         
 
@@ -390,8 +387,8 @@ void iteration(const char* cipher_list){
         //get_server_cipher_list();  
         
     }
-    free(host);
-    free(ip);
+    //free(host);
+    //free(ip);
     close(socketfd);
     SSL_free(ssl);
     SSL_CTX_free(ctx);

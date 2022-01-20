@@ -269,7 +269,7 @@ void set_cipher_suites(SSL_CTX *ctx, SSL *ssl, const char *cipherList){
     //     printf("some ciher selected.\n");
 }
 
-void get_client_cipher_list(SSL *ssl){
+void display_client_cipher_list(SSL *ssl){
     const char *clientCipherSuite;
     for(int i =0; i < 100; i++){
         //stack of available SSL_CIPHERs for ssl
@@ -374,7 +374,7 @@ void iteration(const char* cipher_list){
         
         ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
         
-        get_client_cipher_list(ssl);
+        //display_client_cipher_list(ssl);
 
         
 

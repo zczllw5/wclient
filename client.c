@@ -320,9 +320,6 @@ void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *s
     if(strstr(client_cipher_list, session_cipher) != NULL){
         inCount++;
         printf(" IN client cipher list\n");
-    } else if(strstr(cipher_list_default, session_cipher) != NULL){
-        inCount++;
-        printf(" IN defualt cipher list\n");
     } else {
         notInCount++;
         printf("NOT in cipher list\n");
@@ -375,8 +372,6 @@ void iteration(const char* cipher_list){
         set_cipher_suites(ctx, ssl, cipher_list);
         
         ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
-
-        
 
         
         

@@ -357,7 +357,7 @@ void iteration(const char* cipher_list){
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
 
-    for(int i =1; i <=35; i++){
+    for(int i =1; i <=100; i++){
         
         get_the_nth_host_name(i, host);
         //printf("host: %s", host);
@@ -406,7 +406,7 @@ int main()
         const char* cipher_list_test = "AES256-GCM-SHA384";
         const char* cipher_list_test2 = "DHE-DSS-AES256-GCM-SHA384";
         
-        iteration(cipher_list_test2);
+        iteration(cipher_list_test);
 
         printf("in: %i, notIn %i \n", inCount, notInCount);
 

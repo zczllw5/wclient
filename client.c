@@ -14,7 +14,6 @@
 
 #define PORT 443
 
-static const char* cipher_list_default = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
 int inCount = 0;
 int notInCount = 0;
 

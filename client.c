@@ -42,20 +42,18 @@ void ssl_error_exit(SSL *myssl, int ret)
             break;
         case SSL_ERROR_ZERO_RETURN:
             berr_exit("peer has closed the connection for writing by sending the close_notify alert\n");
-        case SSL_ERROR_WANT_READ:
+        case (SSL_ERROR_WANT_READ | SSL_ERROR_WANT_WRITE):
             berr_exit("last operation was a read operation from a nonblocking BIO\n");
-        case SSL_ERROR_WANT_WRITE:
-            berr_exit("last operation was a write operation from a nonblocking BIO\n");
-        case SSL_ERROR_WANT_CONNECT:
+        case (SSL_ERROR_WANT_CONNECT | SSL_ERROR_WANT_ACCEPT):
             berr_exit("underlying BIO was not connected yet to the peer\n");
         case SSL_ERROR_WANT_X509_LOOKUP:
             berr_exit("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
         case SSL_ERROR_WANT_ASYNC:
-            berr_exit("1\n");
+            berr_exit("The operation did not complete because an asynchronous engine is still processing data\n");
         case SSL_ERROR_WANT_ASYNC_JOB:
-            berr_exit("1\n");
+            berr_exit("The asynchronous job could not be started because there were no async jobs available in the pool \n");
         case SSL_ERROR_WANT_CLIENT_HELLO_CB:
-            berr_exit("1\n");
+            berr_exit("The operation did not complete because an application callback set by SSL_CTX_set_client_hello_cb() has asked to be called again\n");
         case SSL_ERROR_SYSCALL:
             berr_exit("non-recoverable, fatal I/O error occurred\n");
         case SSL_ERROR_SSL:

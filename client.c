@@ -34,46 +34,33 @@ int berr_exit(char *string)
     exit(0);
   }
 
-int ssl_error_exit(SSL_CTX *ctx, SSL *myssl, int ret)
+void ssl_error_exit(SSL *myssl, int ret)
 {
     switch(SSL_get_error(myssl,ret)){
         case SSL_ERROR_NONE:
             printf("The TLS/SSL I/O operation completed\n");
             break;
         case SSL_ERROR_ZERO_RETURN:
-            printf("peer has closed the connection for writing by sending the close_notify alert\n");
-            goto end;
+            berr_exit("peer has closed the connection for writing by sending the close_notify alert\n");
         case SSL_ERROR_WANT_READ:
-            printf("last operation was a read operation from a nonblocking BIO\n");
+            berr_exit("last operation was a read operation from a nonblocking BIO\n");
         case SSL_ERROR_WANT_WRITE:
-            printf("last operation was a write operation from a nonblocking BIO\n");
-            goto end;
+            berr_exit("last operation was a write operation from a nonblocking BIO\n");
         case SSL_ERROR_WANT_CONNECT:
-            printf("underlying BIO was not connected yet to the peer\n");
-            goto end;
+            berr_exit("underlying BIO was not connected yet to the peer\n");
         case SSL_ERROR_WANT_X509_LOOKUP:
-            printf("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
-            goto end;
+            berr_exit("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
         case SSL_ERROR_WANT_ASYNC:
-            printf("1\n");
-            goto end;
+            berr_exit("1\n");
         case SSL_ERROR_WANT_ASYNC_JOB:
-            printf("1\n");
-            goto end;
+            berr_exit("1\n");
         case SSL_ERROR_WANT_CLIENT_HELLO_CB:
-            printf("1\n");
-            goto end;
+            berr_exit("1\n");
         case SSL_ERROR_SYSCALL:
-            printf("non-recoverable, fatal I/O error occurred\n");
-            goto end;
+            berr_exit("non-recoverable, fatal I/O error occurred\n");
         case SSL_ERROR_SSL:
-            printf("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
-            goto end;
+            berr_exit("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
   }
-  end:
-    SSL_free(myssl);
-    SSL_CTX_free(ctx);
-    exit(0);
 }
 
 char* get_the_nth_host_name(int index){
@@ -285,13 +272,13 @@ void display_client_cipher_list(SSL *ssl){
     }
 }
 
-void get_session_cipher(SSL_CTX *ctx, SSL *ssl, const char **sessionCipher){
+void get_session_cipher(SSL *ssl, const char **sessionCipher){
     int ret;
     const SSL_SESSION *ses;
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
-    //ssl_error_exit(ctx,ssl,ret);
+    ssl_error_exit(ssl,ret);
     
     ses = SSL_get1_session(ssl);
     *sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   
@@ -378,7 +365,7 @@ void iteration(const char* cipher_list){
 
         
 
-        get_session_cipher(ctx, ssl, &sessionCipher);
+        get_session_cipher(ssl, &sessionCipher);
         printf(" chosed :%s which ", sessionCipher);
 
         get_shared_ciphers(ssl, cipher_list, sessionCipher);

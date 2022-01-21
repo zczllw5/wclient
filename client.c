@@ -76,7 +76,7 @@ int ssl_error_exit(SSL_CTX *ctx, SSL *myssl, int ret)
     exit(0);
 }
 
-int get_the_nth_host_name(int index, char *host){
+char* get_the_nth_host_name(int index){
     FILE *fp;
     char *buff;
     char indexS[10];
@@ -123,16 +123,16 @@ int get_the_nth_host_name(int index, char *host){
     //printf("First word = \n%s\n", buff);
 
     //slipt the line by ','  method1: strtok method2 split()
-    char *tokens;
-    tokens  = strtok(buff, ",");
+    char *host;
+    host = strtok(buff, ",");
     //printf("tokens: %s\n", tokens);
 
-    tokens  = strtok(NULL, ",");
-    strcpy(host, tokens);
+    host  = strtok(NULL, ",");
+    //strcpy(host, tokens);
     //printf("%ith host: %s  ", index, host);
     
     fclose(fp);
-    return 0;
+    return host;
 }
 
 void hostname_to_ip(char *hostname, char **ip)
@@ -359,7 +359,7 @@ void iteration(const char* cipher_list){
 
     for(int i =1; i <=100; i++){
         
-        get_the_nth_host_name(i, host);
+        host = get_the_nth_host_name(i);
         //printf("host: %s", host);
 
         hostname_to_ip(host, &ip);

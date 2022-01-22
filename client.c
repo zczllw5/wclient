@@ -187,25 +187,25 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     return ctx;
 }
 
-SSL *initialize_ssl_bio_propare_connection(SSL *myssl, SSL_CTX *ctx, int socketfd){
+SSL *initialize_ssl_bio_propare_connection(SSL *ssl, SSL_CTX *ctx, int socketfd){
     int err;
     BIO *mybio;
-    myssl=SSL_new(ctx);
-    if(!myssl)
+    ssl=SSL_new(ctx);
+    if(!ssl)
         err_exit("Error creating SSL structure.\n");
     
     /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
     mybio=BIO_new(BIO_s_connect());
-    SSL_set_bio(myssl,mybio,mybio);
+    SSL_set_bio(ssl,mybio,mybio);
 
     /*Bind the socket to the SSL structure*/
-    err = SSL_set_fd(myssl,socketfd);
+    err = SSL_set_fd(ssl,socketfd);
     if(err==0)
         err_exit("set_fd error\n");
     //else if(err==1)
         //printf("SSL_set_fd succeed\n");
 
-    return myssl;
+    return ssl;
 }
 
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){

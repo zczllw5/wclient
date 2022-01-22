@@ -34,9 +34,9 @@ int berr_exit(char *string)
     exit(0);
   }
 
-void ssl_error_exit(SSL *myssl, int ret)
+void ssl_error_exit(SSL *ssl, int ret)
 {
-    switch(SSL_get_error(myssl,ret)){
+    switch(SSL_get_error(ssl,ret)){
         case SSL_ERROR_NONE:
             printf("The TLS/SSL I/O operation completed\n");
             break;

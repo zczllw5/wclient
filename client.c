@@ -41,9 +41,9 @@ void ssl_error_exit(SSL *ssl, int ret)
             printf("The TLS/SSL I/O operation completed\n");
             break;
         case SSL_ERROR_ZERO_RETURN:
-            berr_exit("peer has closed the connection for writing by sending the close_notify alert\n");
+            printf("peer has closed the connection for writing by sending the close_notify alert\n");
         case (SSL_ERROR_WANT_READ | SSL_ERROR_WANT_WRITE):
-            berr_exit("last operation was a read operation from a nonblocking BIO\n");
+            printf("last operation was a read operation from a nonblocking BIO\n");
         case (SSL_ERROR_WANT_CONNECT | SSL_ERROR_WANT_ACCEPT):
             berr_exit("underlying BIO was not connected yet to the peer\n");
         case SSL_ERROR_WANT_X509_LOOKUP:
@@ -217,9 +217,28 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     return ctx;
 }
 
-SSL *initialize_ssl_bio_propare_connection(SSL *ssl, SSL_CTX *ctx, int socketfd){
+void set_cipher_suites(SSL_CTX *ctx, const char *cipherList){
+
+    int err;
+    //printf("cipherlist in set_cipher_list(): %s\n", cipherList);
+    //err = SSL_set_cipher_list(ssl, cipherList);
+    err = SSL_CTX_set_cipher_list(ctx, cipherList);
+    if(err == 0)
+        err_exit("Error setting the cipher list.\n");
+    // else if(err == 1)
+    //     printf("some ciher selected.\n");
+    
+    err = SSL_CTX_set_ciphersuites(ctx, "");
+    if(err == 0)
+        err_exit("Error setting the TLS1.3 cipher list.\n");
+    
+}
+
+SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
     int err;
     BIO *mybio;
+    SSL *ssl;
+    
     ssl=SSL_new(ctx);
     if(!ssl)
         err_exit("Error creating SSL structure.\n");
@@ -240,20 +259,6 @@ SSL *initialize_ssl_bio_propare_connection(SSL *ssl, SSL_CTX *ctx, int socketfd)
 
 
 
-void set_cipher_suites(SSL_CTX *ctx, SSL *ssl, const char *cipherList){
-
-    int err;
-    //printf("cipherlist in set_cipher_list(): %s\n", cipherList);
-    //err = SSL_set_cipher_list(ssl, cipherList);
-    err = SSL_CTX_set_cipher_list(ctx, cipherList);
-    SSL_CTX_set_ciphersuites(ctx, "");
-
-    if(err == 0)
-        err_exit("Error setting the cipher list.\n");
-    // else if(err == 1)
-    //     printf("some ciher selected.\n");
-}
-
 void display_client_cipher_list(SSL *ssl){
     const char *clientCipherSuite;
     for(int i =0; i < 100; i++){
@@ -269,6 +274,8 @@ void display_client_cipher_list(SSL *ssl){
          }
     }
 }
+
+
 
 void get_session_cipher(SSL *ssl, const char **sessionCipher){
     int ret;
@@ -329,11 +336,8 @@ void get_server_cipher_list(){
 
 void iteration(const char* cipher_list){
 
-    SSL *ssl; /*use SSL object to represent an SSL connection*/
     SSL_CTX *ctx;
     const SSL_METHOD *meth;
-    
-    int socketfd;
 
     char *ip = (char *)malloc(sizeof(char)*50);
     char *host = (char *)malloc(sizeof(char)*50);
@@ -345,23 +349,21 @@ void iteration(const char* cipher_list){
     for(int i =1; i <=100; i++){
         
         host = get_the_nth_host_name(i);
-        //printf("host: %s", host);
 
         hostname_to_ip(host, &ip);
         printf("%s resolved to %s ", host, ip);
-
+        
+        int socketfd;
         socketfd = ip_connect_to_host(ip);
-        printf("socketfd in main(): %i\n", socketfd);
+        printf("socketfd: %i\n", socketfd);
         
         set_protocol_version(ctx);
         
-        set_cipher_suites(ctx, ssl, cipher_list);
-        
-        ssl = initialize_ssl_bio_propare_connection(ssl, ctx, socketfd);
-        
+        set_cipher_suites(ctx, cipher_list);
         //display_client_cipher_list(ssl);
-
         
+        SSL *ssl;
+        ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
 
         get_session_cipher(ssl, &sessionCipher);
         printf(" chosed :%s which ", sessionCipher);
@@ -369,13 +371,14 @@ void iteration(const char* cipher_list){
         get_shared_ciphers(ssl, cipher_list, sessionCipher);
         printf("\n ");
 
-        //get_server_cipher_list();  
+        //get_server_cipher_list();
         
+        close(socketfd);
+        SSL_free(ssl);
     }
     //free(host);
     //free(ip);
-    close(socketfd);
-    SSL_free(ssl);
+    
     SSL_CTX_free(ctx);
       
 }

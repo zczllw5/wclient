@@ -185,34 +185,13 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     return ctx;
 }
 
-SSL *initialize_ssl_bio_propare_connection(SSL *ssl, SSL_CTX *ctx, int socketfd){
-    int err;
-    BIO *mybio;
-    ssl=SSL_new(ctx);
-    if(!ssl)
-        err_exit("Error creating SSL structure.\n");
-    
-    /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
-    mybio=BIO_new(BIO_s_connect());
-    SSL_set_bio(ssl,mybio,mybio);
-
-    /*Bind the socket to the SSL structure*/
-    err = SSL_set_fd(ssl,socketfd);
-    if(err==0)
-        err_exit("set_fd error\n");
-    //else if(err==1)
-        //printf("SSL_set_fd succeed\n");
-
-    return ssl;
-}
-
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     /*SSL3_VERSION, TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION*/
     int err;
     int minVersion = TLS1_1_VERSION;
     int maxVersion = TLS1_2_VERSION;
 
-    err = SSL_CTX_set_min_proto_version(ctx,minVersion);             //0 will enable protocol versions down to the lowest version
+    err = SSL_CTX_set_min_proto_version(ctx,minVersion);
     if(err==0)
         err_exit("set min version error\n");
 //     else if(err==1)
@@ -237,6 +216,29 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
 
     return ctx;
 }
+
+SSL *initialize_ssl_bio_propare_connection(SSL *ssl, SSL_CTX *ctx, int socketfd){
+    int err;
+    BIO *mybio;
+    ssl=SSL_new(ctx);
+    if(!ssl)
+        err_exit("Error creating SSL structure.\n");
+    
+    /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
+    mybio=BIO_new(BIO_s_connect());
+    SSL_set_bio(ssl,mybio,mybio);
+
+    /*Bind the socket to the SSL structure*/
+    err = SSL_set_fd(ssl,socketfd);
+    if(err==0)
+        err_exit("set_fd error\n");
+    //else if(err==1)
+        //printf("SSL_set_fd succeed\n");
+
+    return ssl;
+}
+
+
 
 void set_cipher_suites(SSL_CTX *ctx, SSL *ssl, const char *cipherList){
 

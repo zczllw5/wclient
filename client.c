@@ -165,8 +165,6 @@ int ip_connect_to_host(char *ip){
     err = connect(socketfd, (struct sockaddr *)&socketaddr, sizeof(socketaddr));
         if(err<0) {
             printf("Socket returned error #%i,program terminated\n",errno);
-            //SSL_free(myssl);
-            //SSL_CTX_free(ctx);
             exit(0);
         }
         //else if(err ==0)
@@ -276,7 +274,7 @@ void get_session_cipher(SSL *ssl, const char **sessionCipher){
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
-    ssl_error_exit(ssl,ret);
+    //ssl_error_exit(ssl,ret);
     
     ses = SSL_get1_session(ssl);
     *sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   

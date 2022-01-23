@@ -305,7 +305,7 @@ void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *s
     int size = 100;
     char *buf, *sharedCiphers;
 
-    /*get the session ciher and find weather if the server forced PSK*/
+    /*get the session ciher and find weather if the server forced PFS*/
     if(strstr(client_cipher_list, session_cipher) != NULL){
         inCount++;
         printf(" IN client cipher list\n");

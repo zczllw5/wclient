@@ -196,7 +196,7 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
 //         printf("max version is: %ld\n",SSL_CTX_get_max_proto_version(ctx));
 
     /*use server's preference*/
-    long int serverList;
+    //long int serverList;
     // serverList = SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
     // printf("this protocol is using server cipher list: %ld!\n", serverList);
 
@@ -251,7 +251,12 @@ SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
         err_exit("Error creating SSL structure.\n");
     
     /*BIO_s_connect() returns the connect BIO method, and BIO_new_ex() function returns a new BIO using method type  */
-    mybio=BIO_new(BIO_s_connect());
+    if(BIO_new(BIO_s_connect()) == NULL){
+        berr_exit("BIO_new failed");
+    } else{
+        mybio=BIO_new(BIO_s_connect());
+    }
+    
     SSL_set_bio(ssl,mybio,mybio);
 
     /*Bind the socket to the SSL structure*/
@@ -281,12 +286,12 @@ SSL_SESSION *ssl_connet(SSL* ssl){
     
     return ses;
 }
-    //printf("the server choose :%s\n", *sessionCipher);    
 
     /*print session in a file*/
     // FILE *fp1;
     // int err;
     // fp1 = fopen("sessionInfo.txt", "w");
+void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
     
     // err = SSL_SESSION_print_fp(fp1,ses);  /*stdout to the console*/
     // if(err== 0)
@@ -295,6 +300,14 @@ SSL_SESSION *ssl_connet(SSL* ssl){
     //     printf("SSL_SESSION_print_fp succeed\n");
 
     // fclose(fp1);    
+    if(SSL_SESSION_get0_cipher(ses) == NULL){
+        printf("SSL_CIPHER associated with the SSL_SESSION cannot be determined");
+        *sessionCipher = NULL;
+        //SSL_SESSION_free(ses);
+    } else {
+            *sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));
+    }
+    //("the server choose :%s\n", *sessionCipher);
 
 }
 

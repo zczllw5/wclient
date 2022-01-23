@@ -61,7 +61,7 @@ void ssl_error_exit(SSL *ssl, int ret)
   }
 }
 
-char* get_the_nth_host_name(int index){
+char* get_host_name(int index){
     FILE *fp;
     char *buff;
     char indexS[10];
@@ -340,7 +340,7 @@ void iteration(const char* cipher_list){
 
     for(int i =1; i <=100; i++){
         
-        host = get_the_nth_host_name(i);
+        host = get_host_name(i);
 
         hostname_to_ip(host, &ip);
         printf("%s resolved to %s ", host, ip);

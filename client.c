@@ -226,6 +226,21 @@ void set_cipher_suites(SSL_CTX *ctx, const char *cipherList){
     
 }
 
+void display_client_cipher_list(SSL *ssl){
+    const char *clientCipherSuite;
+    for(int i =0; i < 100; i++){
+        //stack of available SSL_CIPHERs for ssl
+        clientCipherSuite = SSL_get_cipher_list(ssl,i);
+        //SSL_get1_supported_ciphers() returns the stack of enabled SSL_CIPHERs for ssl as would be sent in a ClientHello
+        //clientCipherSuite = SSL_get1_supported_ciphers(ssl);
+        
+         printf("the client\'s %ith ciphersuite: %s\n", i+1, clientCipherSuite);
+         if(clientCipherSuite == NULL){
+             break;
+         }
+    }
+}
+
 SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
     int err;
     BIO *mybio;
@@ -250,26 +265,6 @@ SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
 }
 
 
-
-void display_client_cipher_list(SSL *ssl){
-    const char *clientCipherSuite;
-    for(int i =0; i < 100; i++){
-        //stack of available SSL_CIPHERs for ssl
-        clientCipherSuite = SSL_get_cipher_list(ssl,i);
-        //SSL_get1_supported_ciphers() returns the stack of enabled SSL_CIPHERs for ssl as would be sent in a ClientHello 
-        //clientCipherSuite = SSL_get1_supported_ciphers(ssl);
-        
-        
-         printf("the client\'s %ith ciphersuite: %s\n", i+1, clientCipherSuite);
-         if(clientCipherSuite == NULL){
-             break;
-         }
-    }
-}
-
-
-
-void get_session_cipher(SSL *ssl, const char **sessionCipher){
     int ret;
     const SSL_SESSION *ses;
 

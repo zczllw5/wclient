@@ -264,16 +264,23 @@ SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
     return ssl;
 }
 
+SSL_SESSION *ssl_connet(SSL* ssl){
 
     int ret;
-    const SSL_SESSION *ses;
+    SSL_SESSION *ses;
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
     //ssl_error_exit(ssl,ret);
     
-    ses = SSL_get1_session(ssl);
-    *sessionCipher = SSL_CIPHER_get_name(SSL_SESSION_get0_cipher(ses));   
+    if(SSL_get1_session(ssl) == NULL){
+        err_exit("There is no session available in ssl");
+    } else{
+        ses = SSL_get1_session(ssl);
+    }
+    
+    return ses;
+}
     //printf("the server choose :%s\n", *sessionCipher);    
 
     /*print session in a file*/
@@ -354,6 +361,8 @@ void iteration(const char* cipher_list){
 
         get_session_cipher(ssl, &sessionCipher);
         printf(" chosed :%s which ", sessionCipher);
+        SSL_SESSION *ses;
+        ses = ssl_connet(ssl);
 
         get_shared_ciphers(ssl, cipher_list, sessionCipher);
         printf("\n ");

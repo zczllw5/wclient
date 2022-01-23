@@ -287,19 +287,8 @@ SSL_SESSION *ssl_connet(SSL* ssl){
     return ses;
 }
 
-    /*print session in a file*/
-    // FILE *fp1;
-    // int err;
-    // fp1 = fopen("sessionInfo.txt", "w");
 void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
     
-    // err = SSL_SESSION_print_fp(fp1,ses);  /*stdout to the console*/
-    // if(err== 0)
-    //     err_exit("SSL_SESSION_print_fp error\n");
-    // else if(err==1)
-    //     printf("SSL_SESSION_print_fp succeed\n");
-
-    // fclose(fp1);    
     if(SSL_SESSION_get0_cipher(ses) == NULL){
         printf("SSL_CIPHER associated with the SSL_SESSION cannot be determined");
         *sessionCipher = NULL;

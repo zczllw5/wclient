@@ -91,30 +91,22 @@ char* get_the_nth_host_name(int index){
     if (fileStream != lSize) {
         err_exit("Reading error");
     }
-    //printf("buff: %s\n",buff);
 
     /*get the host name by index*/
     
     //get the position by index
     sprintf(indexS, "%d", index);     
     pch = strstr(buff, indexS);                             //Locate substring
-    //printf("pch: the %ith website: %s\n", index, (pch));
-
 
     //use sscanf() read one line  
     if(sscanf(pch, "%s", buff) ==0){
         err_exit("fscanf error");
     };
-    //printf("First word = \n%s\n", buff);
 
     //slipt the line by ','  method1: strtok method2 split()
     char *host;
     host = strtok(buff, ",");
-    //printf("tokens: %s\n", tokens);
-
     host  = strtok(NULL, ",");
-    //strcpy(host, tokens);
-    //printf("%ith host: %s  ", index, host);
     
     fclose(fp);
     return host;

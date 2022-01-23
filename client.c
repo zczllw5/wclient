@@ -361,10 +361,11 @@ void iteration(const char* cipher_list){
         SSL *ssl;
         ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
 
-        get_session_cipher(ssl, &sessionCipher);
-        printf(" chosed :%s which ", sessionCipher);
         SSL_SESSION *ses;
         ses = ssl_connet(ssl);
+        
+        get_session_cipher(ses, &sessionCipher);
+        printf(" chosed :%s which is", sessionCipher);
 
         get_shared_ciphers(ssl, cipher_list, sessionCipher);
         printf("\n ");

@@ -365,11 +365,13 @@ void iteration(const char* cipher_list){
         SSL_SESSION *ses;
         ses = ssl_connet(ssl);
         
+        counter(cipher_list,sessionCipher)
+        
         get_session_cipher(ses, &sessionCipher);
         printf(" chosed :%s which is", sessionCipher);
 
-        get_shared_ciphers(ssl, cipher_list, sessionCipher);
-        printf("\n ");
+        //get_shared_ciphers(ssl, cipher_list, sessionCipher);
+        printf("\n\n");
 
         //get_server_cipher_list();
         

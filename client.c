@@ -104,7 +104,8 @@ char* get_host_name(int index){
     };
 
     //slipt the line by ','  method1: strtok method2 split()
-    char *host;
+    char *host=(char *)malloc(sizeof(char)*100);
+    
     host = strtok(buff, ",");
     host  = strtok(NULL, ",");
     
@@ -319,11 +320,11 @@ void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *s
 
     //char* copied_client_cipher_list = strcpy(copied_client_cipher_list, client_cipher_list);
     buf = (char *)malloc(sizeof(char)*1000);
-     sharedCiphers = SSL_get_shared_ciphers(ssl, buf, size);
-     if(sharedCiphers == NULL)
-         printf("shared ciphers are: %s\n", sharedCiphers);
-     else
-         printf("NO shared ciphers. \n");
+    sharedCiphers = SSL_get_shared_ciphers(ssl, buf, size);
+    if(sharedCiphers == NULL)
+        printf("shared ciphers are: %s\n", sharedCiphers);
+    else
+        printf("NO shared ciphers. \n");
 }
 
 void get_server_cipher_list(){

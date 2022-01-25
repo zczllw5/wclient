@@ -376,8 +376,7 @@ void iteration(const char* cipher_list){
         close(socketfd);
         SSL_free(ssl);
     }
-    //free(host);
-    //free(ip);
+
     
     SSL_CTX_free(ctx);
       

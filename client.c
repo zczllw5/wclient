@@ -356,6 +356,7 @@ void iteration(const char* cipher_list){
         set_protocol_version(ctx);
         
         set_cipher_suites(ctx, cipher_list);
+        
         //display_client_cipher_list(ssl);
         
         SSL *ssl;

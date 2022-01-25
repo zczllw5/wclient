@@ -201,7 +201,7 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     // printf("this protocol is using server cipher list: %ld!\n", serverList);
 
     /*SSL_CTX_set_options(3): disable specific protocol versions*/
-    SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_3);
+    //SSL_CTX_set_options(ctx, SSL_OP_NO_TLSv1_3);
     
     /* Set for server verification*/
     //SSL_CTX_set_verify(ctx,SSL_VERIFY_NONE,NULL);

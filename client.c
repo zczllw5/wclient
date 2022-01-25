@@ -302,9 +302,11 @@ void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
 }
 
 
+
 void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *session_cipher){
     int size = 100;
-    char *buf, *sharedCiphers;
+    char *buf;
+    char *sharedCiphers = (char *)malloc(sizeof(char)*100);
 
     /*get the session ciher and find weather if the server forced PFS*/
     if(strstr(client_cipher_list, session_cipher) != NULL){

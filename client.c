@@ -332,6 +332,16 @@ void get_server_cipher_list(){
 
 }
 
+void send_early_data(SSL *ssl, const SSL_SESSION *ses){
+    if(SSL_is_init_finished(ssl) == 0){
+        err_exit("SSL_is_init_finished(ssl) Not succeed.\n");
+    } else {
+        //uint32_t
+        if(SSL_SESSION_get_max_early_data(ses) == 0){
+            err_exit("session cannot be used\n");
+        }
+    }
+}
 
 
 void iteration(const char* cipher_list){
@@ -378,6 +388,10 @@ void iteration(const char* cipher_list){
         printf("\n\n");
 
         //get_server_cipher_list();
+        
+        /*ORTT*/
+        //ses = const ses;
+        //send_early_data(ssl,ses);
         
         close(socketfd);
         SSL_free(ssl);

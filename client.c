@@ -307,7 +307,7 @@ void counter(const  char* client_cipher_list, const char *sessionCipher){
     } else if(strstr(client_cipher_list, sessionCipher) != NULL){
         printf(" IN client cipher list\n");
         inCount++;
-        printf("inCount: %i", inCount);
+        //("inCount: %i", inCount);
     } else if(strstr(client_cipher_list, sessionCipher) == NULL){
         return;
     }
@@ -361,7 +361,7 @@ void iteration(const char* cipher_list){
         host = get_host_name(i);
 
         hostname_to_ip(host, &ip);
-        printf("%i. %s resolved to %s ",i host, ip);
+        printf("%i. %s resolved to %s ",i, host, ip);
         
         int socketfd;
         socketfd = ip_connect_to_host(ip);

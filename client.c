@@ -14,10 +14,8 @@
 
 #define PORT 443
 
-int inCount = 0;
-int notInCount = 0;
-
 BIO *bio_err=0;
+int inCount =0;
 
 /* A simple error and exit routine*/ //[E. Rescorla] 
 int err_exit(char *string)
@@ -301,24 +299,25 @@ void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
 
 }
 
+void counter(const  char* client_cipher_list, const char *sessionCipher){
+    
+    if(sessionCipher == NULL){
+        printf("no cipher to compare");
+        return;
+    } else if(strstr(client_cipher_list, sessionCipher) != NULL){
+        printf(" IN client cipher list\n");
+        inCount++;
+        printf("inCount: %i", inCount);
+    } else if(strstr(client_cipher_list, sessionCipher) == NULL){
+        return;
+    }
 
+}
 
 void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *session_cipher){
     int size = 100;
     char *buf;
     char *sharedCiphers = (char *)malloc(sizeof(char)*100);
-
-    /*get the session ciher and find weather if the server forced PFS*/
-    if(strstr(client_cipher_list, session_cipher) != NULL){
-        inCount++;
-        printf(" IN client cipher list\n");
-    } else {
-        notInCount++;
-        printf("NOT in cipher list\n");
-        if(strstr(session_cipher,"ECDHE") != NULL){
-            printf("server gave ECDHE cipher which not in the client\'s list\n");
-        }
-    }
 
     //char* copied_client_cipher_list = strcpy(copied_client_cipher_list, client_cipher_list);
     buf = (char *)malloc(sizeof(char)*1000);
@@ -344,7 +343,7 @@ void iteration(const char* cipher_list){
     
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
-
+    
     for(int i =1; i <=100; i++){
         
         host = get_host_name(i);
@@ -367,12 +366,14 @@ void iteration(const char* cipher_list){
 
         SSL_SESSION *ses;
         ses = ssl_connet(ssl);
-        
-        counter(cipher_list,sessionCipher)
-        
-        get_session_cipher(ses, &sessionCipher);
-        printf(" chosed :%s which is", sessionCipher);
 
+        get_session_cipher(ses, &sessionCipher);
+        printf(" chosed :%s ", sessionCipher);
+    
+        counter(cipher_list,sessionCipher);
+      
+        
+        
         //get_shared_ciphers(ssl, cipher_list, sessionCipher);
         printf("\n\n");
 
@@ -382,7 +383,7 @@ void iteration(const char* cipher_list){
         SSL_free(ssl);
     }
 
-    
+    printf("in: %i. notIn %i \n", inCount, 100-inCount);
     SSL_CTX_free(ctx);
       
 }
@@ -401,9 +402,8 @@ int main()
         
         iteration(cipher_list_Q2);
 
-        printf("in: %i, notIn %i \n", inCount, notInCount);
         
-        answers 1st question
+        
 
         /*cipherList string rule:
             1. no NULL

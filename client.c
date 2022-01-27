@@ -314,7 +314,7 @@ void counter(const  char* client_cipher_list, const char *sessionCipher){
 
 }
 
-void get_shared_ciphers(SSL *ssl, const  char* client_cipher_list, const char *session_cipher){
+void get_shared_ciphers(SSL *ssl){
     int size = 100;
     char *buf;
     char *sharedCiphers = (char *)malloc(sizeof(char)*100);
@@ -384,7 +384,7 @@ void iteration(const char* cipher_list){
     
         counter(cipher_list,sessionCipher);
         
-        //get_shared_ciphers(ssl, cipher_list, sessionCipher);
+        get_shared_ciphers(ssl);
         printf("\n\n");
 
         //get_server_cipher_list();
@@ -393,6 +393,7 @@ void iteration(const char* cipher_list){
         //ses = const ses;
         //send_early_data(ssl,ses);
         
+        SSL_SESSION_free(ses);
         close(socketfd);
         SSL_free(ssl);
     }
@@ -412,7 +413,7 @@ int main()
 
         
         const char* cipher_list_Q1 = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384";
-        const char* cipher_list_Q2 = "AES256-GCM-SHA384";
+        const char* cipher_list_Q2 = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384";
         
         iteration(cipher_list_Q2);
 
@@ -430,6 +431,9 @@ int main()
             2, may be none
         */
 
+        //1. source for non foward secrecy.
+        //2. time 0RTT-time to fisrt byte last byte come back
+        //3. session resumption
         
         exit(0);
 }

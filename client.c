@@ -177,6 +177,12 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     return ctx;
 }
 
+void set_timeout(SSL_CTX *ctx){
+    SSL_CTX_set_timeout(ctx, 2);
+    long timeOut = SSL_CTX_get_timeout(ctx);
+    printf("timeOut: %li. \n", timeOut);
+}
+
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     /*SSL3_VERSION, TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION*/
     int err;
@@ -359,6 +365,8 @@ void iteration(const char* cipher_list){
     
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
+    /*set timeout*/
+    //set_timeout(ctx);
     
     for(int i =1; i <=100; i++){
         

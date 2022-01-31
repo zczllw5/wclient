@@ -15,7 +15,8 @@
 #define PORT 443
 
 BIO *bio_err=0;
-int inCount =0;
+int inTLS1_2 =0;
+const char* cipher_list_tls1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_CCM_SHA384:TLS_AES_128_CCM_SHA256";
 
 /* A simple error and exit routine*/ //[E. Rescorla] 
 int err_exit(char *string)
@@ -218,7 +219,7 @@ void set_cipher_suites(SSL_CTX *ctx, const char *cipherList){
     // else if(err == 1)
     //     printf("some ciher selected.\n");
     
-    err = SSL_CTX_set_ciphersuites(ctx, "");
+    err = SSL_CTX_set_ciphersuites(ctx, cipher_list_tls1_3);
     if(err == 0)
         err_exit("Error setting the TLS1.3 cipher list.\n");
     
@@ -288,7 +289,7 @@ SSL_SESSION *ssl_connet(SSL* ssl){
 void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
     
     if(SSL_SESSION_get0_cipher(ses) == NULL){
-        printf("SSL_CIPHER associated with the SSL_SESSION cannot be determined");
+        printf("SSL_CIPHER associated with the SSL_SESSION cannot be determined.\n");
         *sessionCipher = NULL;
         //SSL_SESSION_free(ses);
     } else {
@@ -304,8 +305,12 @@ void counter(const  char* client_cipher_list, const char *sessionCipher){
         printf("no cipher to compare");
         return;
     } else if(strstr(client_cipher_list, sessionCipher) != NULL){
-        printf(" IN client cipher list\n");
-        inCount++;
+        printf(" IN TLS1.2 cipher list\n");
+        inTLS1_2++;
+        //("inCount: %i", inCount);
+    } else if(strstr(cipher_list_tls1_3, sessionCipher) != NULL){
+        printf(" IN TLS1.3 cipher list\n");
+        inTLS1_2++;
         //("inCount: %i", inCount);
     } else if(strstr(client_cipher_list, sessionCipher) == NULL){
         return;

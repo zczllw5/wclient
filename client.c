@@ -393,11 +393,11 @@ void iteration(const char* cipher_list){
 
         //get_server_cipher_list();
         
-        /*ORTT*/
+        /*O-RTT*/
         //ses = const ses;
         //send_early_data(ssl,ses);
         
-        SSL_SESSION_free(ses);
+        //SSL_SESSION_free(ses);
         close(socketfd);
         SSL_free(ssl);
     }

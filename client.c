@@ -388,8 +388,8 @@ void iteration(const char* cipher_list){
     
         counter(cipher_list,sessionCipher);
         
-        get_shared_ciphers(ssl);
-        printf("\n\n");
+        //get_shared_ciphers(ssl);
+        printf("\n");
 
         //get_server_cipher_list();
         

@@ -346,9 +346,15 @@ void send_early_data(SSL *ssl, const SSL_SESSION *ses){
     if(SSL_is_init_finished(ssl) == 0){
         err_exit("SSL_is_init_finished(ssl) Not succeed.\n");
     } else {
+        /*for 0-RTT, the session must be resumable, check it before send data */
         //uint32_t
-        if(SSL_SESSION_get_max_early_data(ses) == 0){
-            err_exit("session cannot be used\n");
+        if(SSL_SESSION_is_resumable(ses) == 1){
+            printf("can be used to resume a session");
+            if(SSL_SESSION_get_max_early_data(ses) == 0){
+                err_exit("session cannot be used\n");
+            }
+        } else {
+            err_exit("can't be used to resume a session");
         }
     }
 }

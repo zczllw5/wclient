@@ -402,7 +402,7 @@ void iteration(const char* cipher_list){
         SSL_free(ssl);
     }
 
-    printf("in: %i. notIn %i \n", inCount, 100-inCount);
+    printf("in: %i. notIn %i \n", inTLS1_2, 100-inTLS1_2);
     SSL_CTX_free(ctx);
       
 }

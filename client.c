@@ -187,6 +187,7 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     /*SSL3_VERSION, TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION*/
     int err;
     int minVersion = TLS1_1_VERSION;
+    int maxVersion = TLS1_3_VERSION;
 
     err = SSL_CTX_set_min_proto_version(ctx,minVersion);
     if(err==0)

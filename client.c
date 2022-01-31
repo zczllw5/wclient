@@ -375,11 +375,15 @@ void iteration(const char* cipher_list){
         
         set_cipher_suites(ctx, cipher_list);
         
-        //display_client_cipher_list(ssl);
+        
+        
+        
         
         SSL *ssl;
         ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
-
+        
+        //display_client_cipher_list(ssl);
+        
         SSL_SESSION *ses;
         ses = ssl_connet(ssl);
 

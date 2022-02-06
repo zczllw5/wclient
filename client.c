@@ -35,33 +35,6 @@ int berr_exit(char *string)
     exit(0);
   }
 
-void ssl_error_exit(SSL *ssl, int ret)
-{
-    switch(SSL_get_error(ssl,ret)){
-        case SSL_ERROR_NONE:
-            printf("The TLS/SSL I/O operation completed\n");
-            break;
-        case SSL_ERROR_ZERO_RETURN:
-            printf("peer has closed the connection for writing by sending the close_notify alert\n");
-        case (SSL_ERROR_WANT_READ | SSL_ERROR_WANT_WRITE):
-            printf("last operation was a read operation from a nonblocking BIO\n");
-        case (SSL_ERROR_WANT_CONNECT | SSL_ERROR_WANT_ACCEPT):
-            berr_exit("underlying BIO was not connected yet to the peer\n");
-        case SSL_ERROR_WANT_X509_LOOKUP:
-            berr_exit("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
-        case SSL_ERROR_WANT_ASYNC:
-            berr_exit("The operation did not complete because an asynchronous engine is still processing data\n");
-        case SSL_ERROR_WANT_ASYNC_JOB:
-            berr_exit("The asynchronous job could not be started because there were no async jobs available in the pool \n");
-        case SSL_ERROR_WANT_CLIENT_HELLO_CB:
-            berr_exit("The operation did not complete because an application callback set by SSL_CTX_set_client_hello_cb() has asked to be called again\n");
-        case SSL_ERROR_SYSCALL:
-            berr_exit("non-recoverable, fatal I/O error occurred\n");
-        case SSL_ERROR_SSL:
-            berr_exit("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
-  }
-}
-
 char* get_host_name(int index){
     FILE *fp;
     char *buff;
@@ -105,11 +78,11 @@ char* get_host_name(int index){
     };
 
     //slipt the line by ','  method1: strtok method2 split()
-    char *host=(char *)malloc(sizeof(char)*100);
+    char *host = (char *)malloc(sizeof(char)*100);
     
     host = strtok(buff, ",");
     host  = strtok(NULL, ",");
-    
+    //printf("host:%s\n", host);
     fclose(fp);
     return host;
 }
@@ -277,7 +250,34 @@ SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
     return ssl;
 }
 
-SSL_SESSION *ssl_connet(SSL* ssl){
+void ssl_error_exit(SSL *ssl, int ret)
+{
+    switch(SSL_get_error(ssl,ret)){
+        case SSL_ERROR_NONE:
+            printf("The TLS/SSL I/O operation completed\n");
+            break;
+        case SSL_ERROR_ZERO_RETURN:
+            berr_exit("peer has closed the connection for writing by sending the close_notify alert\n");
+        case (SSL_ERROR_WANT_READ | SSL_ERROR_WANT_WRITE):
+            berr_exit("last operation was a read operation from a nonblocking BIO\n");
+        case (SSL_ERROR_WANT_CONNECT | SSL_ERROR_WANT_ACCEPT):
+            berr_exit("underlying BIO was not connected yet to the peer\n");
+        case SSL_ERROR_WANT_X509_LOOKUP:
+            berr_exit("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
+        case SSL_ERROR_WANT_ASYNC:
+            berr_exit("The operation did not complete because an asynchronous engine is still processing data\n");
+        case SSL_ERROR_WANT_ASYNC_JOB:
+            berr_exit("The asynchronous job could not be started because there were no async jobs available in the pool \n");
+        case SSL_ERROR_WANT_CLIENT_HELLO_CB:
+            berr_exit("The operation did not complete because an application callback set by SSL_CTX_set_client_hello_cb() has asked to be called again\n");
+        case SSL_ERROR_SYSCALL:
+            berr_exit("non-recoverable, fatal I/O error occurred\n");
+        case SSL_ERROR_SSL:
+            berr_exit("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
+  }
+}
+
+SSL_SESSION *ssl_connect(SSL* ssl){
 
     int ret;
     SSL_SESSION *ses;
@@ -380,6 +380,7 @@ void iteration(const char* cipher_list){
     for(int i =1; i <=100; i++){
         
         host = get_host_name(i);
+        //printf("host:%s\n", host);
 
         hostname_to_ip(host, &ip);
         printf("%i. %s resolved to %s ",i, host, ip);
@@ -402,8 +403,8 @@ void iteration(const char* cipher_list){
         //display_client_cipher_list(ssl);
         
         SSL_SESSION *ses;
-        ses = ssl_connet(ssl);
-
+        ses = ssl_connect(ssl);
+        
         get_session_cipher(ses, &sessionCipher);
         printf(" chosed :%s ", sessionCipher);
     

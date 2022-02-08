@@ -87,6 +87,26 @@ char* get_host_name(int index){
     return host;
 }
 
+void read_line(char host[100][50]){
+    FILE *fp;
+    char *line = (char *)malloc(sizeof(char)*100);
+    size_t len = 0;
+    
+    fp = fopen("top-1h.csv", "r");
+    if (!fp)
+        exit(EXIT_FAILURE);
+    
+    int i=0;
+    while ((getline(&line, &len, fp)) != -1) {
+        strcpy(host[i], line);
+        i++;
+    }
+    
+    fclose(fp);
+    if (line)
+        free(line);
+}
+
 void hostname_to_ip(char *hostname, char **ip)
 {
     int sockfd;
@@ -369,7 +389,7 @@ void iteration(const char* cipher_list){
     const SSL_METHOD *meth;
 
     char *ip = (char *)malloc(sizeof(char)*50);
-    char *host = (char *)malloc(sizeof(char)*50);
+    char host[100][50];
     const char *sessionCipher = (char *)malloc(sizeof(char)*100);
     
     meth = TLS_client_method();
@@ -377,12 +397,16 @@ void iteration(const char* cipher_list){
     /*set timeout*/
     //set_timeout(ctx);
     
-    for(int i =1; i <=100; i++){
+    read_line(host);
+    
+    for(int i =1; i <=1; i++){
         
-        host = get_host_name(i);
+       
+        
+        //host = get_host_name(i);
         //printf("host:%s\n", host);
 
-        hostname_to_ip(host, &ip);
+        hostname_to_ip(host[i], &ip);
         printf("%i. %s resolved to %s ",i, host, ip);
         
         int socketfd;
@@ -392,9 +416,6 @@ void iteration(const char* cipher_list){
         set_protocol_version(ctx);
         
         set_cipher_suites(ctx, cipher_list);
-        
-        
-        
         
         
         SSL *ssl;

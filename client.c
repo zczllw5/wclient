@@ -35,22 +35,17 @@ int berr_exit(char *string)
     exit(0);
   }
 
-char* get_host_name(int index){
+void get_hosts(char host[100][50]){
     FILE *fp;
     char *buff;
-    char indexS[10];
-
+    size_t fileStream;
     long lSize;
-    size_t fileStream;             // represent the size of any object in bytes
-    char *pch;
-    /* get the host name pass it to host to ip funciton */
-    fp = fopen("top-1h.csv", "r");
-    if(fp == NULL) {
-        err_exit("can't open file");
-    }
-
-    /*get all stream*/
-
+    
+    fp = fopen("top_1h.txt", "r");
+    
+    if (!fp)
+        exit(EXIT_FAILURE);
+    
     // obtain file size:
     fseek (fp, 0, SEEK_END); //Reposition stream position indicator
     lSize = ftell (fp);      //Get current position in stream
@@ -65,49 +60,18 @@ char* get_host_name(int index){
     if (fileStream != lSize) {
         err_exit("Reading error");
     }
-
-    /*get the host name by index*/
+    char *piece = strtok(buff, " ");
+    strcpy(host[0], piece);
     
-    //get the position by index
-    sprintf(indexS, "%d", index);     
-    pch = strstr(buff, indexS);                             //Locate substring
-
-    //use sscanf() read one line  
-    if(sscanf(pch, "%s", buff) ==0){
-        err_exit("fscanf error");
-    };
-
-    //slipt the line by ','  method1: strtok method2 split()
-    char *host = (char *)malloc(sizeof(char)*100);
-    
-    host = strtok(buff, ",");
-    host  = strtok(NULL, ",");
-    //printf("host:%s\n", host);
-    fclose(fp);
-    return host;
-}
-
-void read_line(char host[100][50]){
-    FILE *fp;
-    char *line = (char *)malloc(sizeof(char)*100);
-    size_t len = 0;
-    
-    fp = fopen("top-1h.csv", "r");
-    if (!fp)
-        exit(EXIT_FAILURE);
-    
-    int i=0;
-    while ((getline(&line, &len, fp)) != -1) {
-        strcpy(host[i], line);
-        i++;
+    for(int i = 1; i < 100; i++){
+        piece  = strtok(NULL, " ");
+        strcpy(host[i], piece);
     }
     
     fclose(fp);
-    if (line)
-        free(line);
 }
 
-void hostname_to_ip(char *hostname, char **ip)
+void hostname_to_ip(char hostname[100], char **ip)
 {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
@@ -131,6 +95,8 @@ void hostname_to_ip(char *hostname, char **ip)
         *ip = inet_ntoa(h->sin_addr);
         //strcpy(ip,inet_ntoa(h->sin_addr));
     }
+    
+    //printf("%s resolved to \n", hostname);
     
     freeaddrinfo(servinfo); // all done with this structure
     //return 0;
@@ -170,12 +136,6 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
         exit(0);
     }
     return ctx;
-}
-
-void set_timeout(SSL_CTX *ctx){
-    SSL_CTX_set_timeout(ctx, 2);
-    long timeOut = SSL_CTX_get_timeout(ctx);
-    printf("timeOut: %li. \n", timeOut);
 }
 
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
@@ -390,24 +350,20 @@ void iteration(const char* cipher_list){
 
     char *ip = (char *)malloc(sizeof(char)*50);
     char host[100][50];
+    char *hostname = (char *)malloc(sizeof(char)*50);
     const char *sessionCipher = (char *)malloc(sizeof(char)*100);
     
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
-    /*set timeout*/
-    //set_timeout(ctx);
     
-    read_line(host);
+    get_hosts(host);
     
-    for(int i =1; i <=1; i++){
-        
+    for(int i = 0; i < 100; i++){
        
-        
-        //host = get_host_name(i);
-        //printf("host:%s\n", host);
+        //hostname = host[i];
 
         hostname_to_ip(host[i], &ip);
-        printf("%i. %s resolved to %s ",i, host, ip);
+        printf("%i. %s resolved to %s ",i, hostname[i], ip);
         
         int socketfd;
         socketfd = ip_connect_to_host(ip);
@@ -427,7 +383,7 @@ void iteration(const char* cipher_list){
         ses = ssl_connect(ssl);
         
         get_session_cipher(ses, &sessionCipher);
-        printf(" chosed :%s ", sessionCipher);
+        //printf(" chosed :%s ", sessionCipher);
     
         counter(cipher_list,sessionCipher);
         

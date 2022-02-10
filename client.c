@@ -351,7 +351,7 @@ void iteration(const char* cipher_list){
     char *ip = (char *)malloc(sizeof(char)*50);
     char host[100][50];
     char *hostname = (char *)malloc(sizeof(char)*50);
-    const char *sessionCipher = (char *)malloc(sizeof(char)*100);
+    const char *sessionCipher;
     
     meth = TLS_client_method();
     ctx = initial_ctx(meth);
@@ -364,6 +364,7 @@ void iteration(const char* cipher_list){
 
         hostname_to_ip(host[i], &ip);
         printf("%i. %s resolved to %s ",i, hostname[i], ip);
+        printf("%i. %s resolved to %s ", i, host[i], ip);
         
         int socketfd;
         socketfd = ip_connect_to_host(ip);
@@ -378,12 +379,13 @@ void iteration(const char* cipher_list){
         ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
         
         //display_client_cipher_list(ssl);
+        SSL_set_tlsext_host_name(ssl,host[i]);
         
         SSL_SESSION *ses;
         ses = ssl_connect(ssl);
         
         get_session_cipher(ses, &sessionCipher);
-        //printf(" chosed :%s ", sessionCipher);
+        printf(" chosed :%s ", sessionCipher);
     
         counter(cipher_list,sessionCipher);
         

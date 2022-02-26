@@ -14,11 +14,14 @@
 
 #define PORT 443
 
-BIO *bio_err=0;
-int inTLS1_2 =0;
-int inTLS1_3 =0;
+BIO *bio_err = 0;
+int inTLS1_2 = 0;
+int inTLS1_3 = 0;
+int inClientCipherList = 0;
+int noSession = 0;
+int unresumable = 0;
 
-const char* cipher_list_tls1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_CCM_SHA384:TLS_AES_128_CCM_SHA256";
+const char* cipher_list_tls1_3 = "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256";
 
 /* A simple error and exit routine*/ //[E. Rescorla] 
 int err_exit(char *string)
@@ -139,22 +142,22 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
 }
 
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
-    /*SSL3_VERSION, TLS1_VERSION, TLS1_1_VERSION, TLS1_2_VERSION, TLS1_3_VERSION*/
+    /*SSL3_VERSION, 769:TLS1_VERSION, 770:TLS1_1_VERSION, 771:TLS1_2_VERSION, 772:TLS1_3_VERSION*/
     int err;
-    int minVersion = TLS1_1_VERSION;
-    int maxVersion = TLS1_3_VERSION;
+    int minVersion = SSL3_VERSION;
+    int maxVersion = SSL3_VERSION;
 
     err = SSL_CTX_set_min_proto_version(ctx,minVersion);
     if(err==0)
         err_exit("set min version error\n");
-//     else if(err==1)
-//         printf("min version is: %ld\n",SSL_CTX_get_min_proto_version(ctx));
+     else if(err==1)
+         printf("min version is: %ld\n",SSL_CTX_get_min_proto_version(ctx));
     
     err = SSL_CTX_set_max_proto_version(ctx,maxVersion);
     if(err==0)
         err_exit("SSL_CTX_set_max_proto_version error");
-//     else if(err==1)
-//         printf("max version is: %ld\n",SSL_CTX_get_max_proto_version(ctx));
+     else if(err==1)
+         printf("max version is: %ld\n",SSL_CTX_get_max_proto_version(ctx));
 
     /*use server's preference*/
     //long int serverList;
@@ -217,7 +220,7 @@ SSL *initialize_ssl_bio_propare_connection(SSL_CTX *ctx, int socketfd){
     } else{
         mybio=BIO_new(BIO_s_connect());
     }
-    
+      
     SSL_set_bio(ssl,mybio,mybio);
 
     /*Bind the socket to the SSL structure*/
@@ -237,24 +240,37 @@ void ssl_error_exit(SSL *ssl, int ret)
             printf("The TLS/SSL I/O operation completed\n");
             break;
         case SSL_ERROR_ZERO_RETURN:
-            berr_exit("peer has closed the connection for writing by sending the close_notify alert\n");
+            printf("peer has closed the connection for writing by sending the close_notify alert\n");
+            goto end;
         case (SSL_ERROR_WANT_READ | SSL_ERROR_WANT_WRITE):
-            berr_exit("last operation was a read operation from a nonblocking BIO\n");
+            printf("last operation was a read operation from a nonblocking BIO\n");
+            goto end;
         case (SSL_ERROR_WANT_CONNECT | SSL_ERROR_WANT_ACCEPT):
-            berr_exit("underlying BIO was not connected yet to the peer\n");
+            printf("underlying BIO was not connected yet to the peer\n");
+            goto end;
         case SSL_ERROR_WANT_X509_LOOKUP:
-            berr_exit("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
+            printf("an application callback set by SSL_CTX_set_client_cert_cb() has asked to be called again\n");
+            goto end;
         case SSL_ERROR_WANT_ASYNC:
-            berr_exit("The operation did not complete because an asynchronous engine is still processing data\n");
+            printf("The operation did not complete because an asynchronous engine is still processing data\n");
+            goto end;
         case SSL_ERROR_WANT_ASYNC_JOB:
-            berr_exit("The asynchronous job could not be started because there were no async jobs available in the pool \n");
+            printf("The asynchronous job could not be started because there were no async jobs available in the pool \n");
+            goto end;
         case SSL_ERROR_WANT_CLIENT_HELLO_CB:
-            berr_exit("The operation did not complete because an application callback set by SSL_CTX_set_client_hello_cb() has asked to be called again\n");
+            printf("The operation did not complete because an application callback set by SSL_CTX_set_client_hello_cb() has asked to be called again\n");
+            goto end;
         case SSL_ERROR_SYSCALL:
-            berr_exit("non-recoverable, fatal I/O error occurred\n");
+            fprintf(stderr, "errno = %s\n", strerror(errno));
+            //printf("non-recoverable, fatal I/O error occurred\n");
+            goto end;
         case SSL_ERROR_SSL:
-            berr_exit("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
+            printf("non-recoverable, fatal error in the SSL library occurred, usually a protocol error.\n");
+            goto end;
   }
+  end:
+    SSL_free(ssl);
+    exit(0);
 }
 
 SSL_SESSION *ssl_connect(SSL* ssl){
@@ -264,10 +280,14 @@ SSL_SESSION *ssl_connect(SSL* ssl){
 
     /*Connect to the server, SSL layer.*/
     ret = SSL_connect(ssl);
-    //ssl_error_exit(ssl,ret);
+    //ssl_error_exit(ssl,SSL_connect(ssl));
+    
+    const char* version = SSL_get_version(ssl);
+    printf("ssl protocol version: %s\n", version);
     
     if(SSL_get1_session(ssl) == NULL){
-        err_exit("There is no session available in ssl");
+        printf("There is no session available in ssl");
+        noSession++;
     } else{
         ses = SSL_get1_session(ssl);
     }
@@ -294,8 +314,8 @@ void counter(const  char* client_cipher_list, const char *sessionCipher){
         printf("no cipher to compare");
         return;
     } else if(strstr(client_cipher_list, sessionCipher) != NULL){
-        printf(" IN TLS1.2 cipher list\n");
-        inTLS1_2++;
+        printf(" IN FS cipher list\n");
+        inClientCipherList++;
         //("inCount: %i", inCount);
     } else if(strstr(cipher_list_tls1_3, sessionCipher) != NULL){
         printf(" IN TLS1.3 cipher list\n");
@@ -325,21 +345,26 @@ void get_server_cipher_list(){
 
 }
 
-void send_early_data(SSL *ssl, const SSL_SESSION *ses){
-    if(SSL_is_init_finished(ssl) == 0){
-        err_exit("SSL_is_init_finished(ssl) Not succeed.\n");
-    } else {
-        /*for 0-RTT, the session must be resumable, check it before send data */
-        //uint32_t
-        if(SSL_SESSION_is_resumable(ses) == 1){
-            printf("can be used to resume a session");
-            if(SSL_SESSION_get_max_early_data(ses) == 0){
-                err_exit("session cannot be used\n");
-            }
-        } else {
-            err_exit("can't be used to resume a session");
+void send_early_data(SSL *ssl){
+    
+    //shut down and reconnect
+    SSL_shutdown(ssl);
+    int ret;
+    SSL_SESSION *ses;
+    ret = SSL_connect(ssl);
+    
+    /*for 0-RTT, the session must be resumable, check it before send data */
+    //uint32_t
+    if(SSL_SESSION_is_resumable(ses) == 1){
+        printf("can be used to resume a session\n");
+        if(SSL_SESSION_get_max_early_data(ses) == 0){
+            err_exit("session cannot be used\n");
         }
+    } else {
+        printf("can't be used to resume a session\n");
+        unresumable++;
     }
+    
 }
 
 
@@ -353,17 +378,15 @@ void iteration(const char* cipher_list){
     char *hostname = (char *)malloc(sizeof(char)*50);
     const char *sessionCipher;
     
-    meth = TLS_client_method();
+    meth = TLS_method();
     ctx = initial_ctx(meth);
     
     get_hosts(host);
     
     for(int i = 0; i < 100; i++){
        
-        //hostname = host[i];
-
+        //hostname = host[i]
         hostname_to_ip(host[i], &ip);
-        printf("%i. %s resolved to %s ",i, hostname[i], ip);
         printf("%i. %s resolved to %s ", i, host[i], ip);
         
         int socketfd;
@@ -373,13 +396,30 @@ void iteration(const char* cipher_list){
         set_protocol_version(ctx);
         
         set_cipher_suites(ctx, cipher_list);
-        
+         
         
         SSL *ssl;
         ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
         
         //display_client_cipher_list(ssl);
-        SSL_set_tlsext_host_name(ssl,host[i]);
+        
+        if(i ==0 | i == 28 || i == 42 || i == 49 ||i == 51 || i == 53 ||i == 72 || i == 77 || i == 92 || i == 95){
+            int err = SSL_set_tlsext_host_name(ssl, host[i]);
+        } else  {
+            char url[80];
+            strcpy(url, "https://www.");
+            strcat(url,host[i]);
+            printf("url: %s\n", url);
+            int err = SSL_set_tlsext_host_name(ssl,url);
+            
+            if(err == 1){
+               printf("set hostname success\n");
+                const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+                printf("servername: %s\n", servername);
+            }
+            else if(err == 0)
+                err_exit("set hostname error");
+        }
         
         SSL_SESSION *ses;
         ses = ssl_connect(ssl);
@@ -395,43 +435,42 @@ void iteration(const char* cipher_list){
         //get_server_cipher_list();
         
         /*O-RTT*/
+//        size_t *len = 1000L;
+//        const unsigned char *tick = (const unsigned char *)malloc(sizeof(char)*1000);
+//
+//        SSL_SESSION_get0_ticket(ses, &tick, len);
+//        printf("session ticket :%s \n", tick);
+        
         //ses = const ses;
-        //send_early_data(ssl,ses);
+        
+        /*build connection and get the PSK */
+        
+        //SSL_set_psk_client_callback(ssl, SSL_psk_client_cb_func);
+        
+        //send_early_data(ssl);
         
         //SSL_SESSION_free(ses);
         close(socketfd);
         SSL_free(ssl);
     }
 
-    printf("in1.2: %i, in1.3: %i, notIn %i.\n", inTLS1_2, inTLS1_3, 100-inTLS1_2-inTLS1_3);
+    printf("in1.2: %i, in1.3 %i, inClientCipherList: %i, noSession: %i\n", inTLS1_2, inTLS1_3, inClientCipherList, noSession);
+    //printf("unresumable server: %i\n", unresumable);
     SSL_CTX_free(ctx);
       
 }
 
 int main()
     {
-        const char* cipher_list_tls1_2 = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA";
-        const char* cipher_list_ssl3_0 = "";
+        const char* ciphers_tls1_2 = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA";
+        const char* ciphers_non_forward_secrecy = "ADH-AES256-GCM-SHA384:ADH-AES128-GCM-SHA256:ADH-AES256-SHA256:ADH-CAMELLIA256-SHA256:ADH-AES128-SHA256:ADH-CAMELLIA128-SHA256:AECDH-AES256-SHA:ADH-AES256-SHA:ADH-CAMELLIA256-SHA:AECDH-AES128-SHA:ADH-AES128-SHA:ADH-SEED-SHA:ADH-CAMELLIA128-SHA:RSA-PSK-AES256-GCM-SHA384:RSA-PSK-CHACHA20-POLY1305:RSA-PSK-ARIA256-GCM-SHA384:AES256-GCM-SHA384:AES256-CCM8:AES256-CCM:ARIA256-GCM-SHA384:PSK-AES256-GCM-SHA384:PSK-CHACHA20-POLY1305:PSK-AES256-CCM8:PSK-AES256-CCM:PSK-ARIA256-GCM-SHA384:RSA-PSK-AES128-GCM-SHA256:RSA-PSK-ARIA128-GCM-SHA256:AES128-GCM-SHA256:AES128-CCM8:AES128-CCM:ARIA128-GCM-SHA256:PSK-AES128-GCM-SHA256:PSK-AES128-CCM8:PSK-AES128-CCM:PSK-ARIA128-GCM-SHA256:AES256-SHA256:CAMELLIA256-SHA256:AES128-SHA256:CAMELLIA128-SHA256:SRP-DSS-AES-256-CBC-SHA:SRP-RSA-AES-256-CBC-SHA:SRP-AES-256-CBC-SHA:RSA-PSK-AES256-CBC-SHA384:RSA-PSK-AES256-CBC-SHA:RSA-PSK-CAMELLIA256-SHA384:AES256-SHA:CAMELLIA256-SHA:PSK-AES256-CBC-SHA384:PSK-AES256-CBC-SHA:PSK-CAMELLIA256-SHA384:SRP-DSS-AES-128-CBC-SHA:SRP-RSA-AES-128-CBC-SHA:SRP-AES-128-CBC-SHA:RSA-PSK-AES128-CBC-SHA256:RSA-PSK-AES128-CBC-SHA:RSA-PSK-CAMELLIA128-SHA256:AES128-SHA:SEED-SHA:CAMELLIA128-SHA:IDEA-CBC-SHA:PSK-AES128-CBC-SHA256:PSK-AES128-CBC-SHA:PSK-CAMELLIA128-SHA256";
+        const char* ciphers_forward_secrecy ="ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-DSS-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM8:ECDHE-ECDSA-AES256-CCM:DHE-RSA-AES256-CCM8:DHE-RSA-AES256-CCM:ECDHE-ECDSA-ARIA256-GCM-SHA384:ECDHE-ARIA256-GCM-SHA384:DHE-DSS-ARIA256-GCM-SHA384:DHE-RSA-ARIA256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-CCM8:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-CCM8:DHE-RSA-AES128-CCM:ECDHE-ECDSA-ARIA128-GCM-SHA256:ECDHE-ARIA128-GCM-SHA256:DHE-DSS-ARIA128-GCM-SHA256:DHE-RSA-ARIA128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA256:ECDHE-ECDSA-CAMELLIA256-SHA384:ECDHE-RSA-CAMELLIA256-SHA384:DHE-RSA-CAMELLIA256-SHA256:DHE-DSS-CAMELLIA256-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:DHE-DSS-AES128-SHA256:ECDHE-ECDSA-CAMELLIA128-SHA256:ECDHE-RSA-CAMELLIA128-SHA256:DHE-RSA-CAMELLIA128-SHA256:DHE-DSS-CAMELLIA128-SHA256:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:DHE-RSA-CAMELLIA256-SHA:DHE-DSS-CAMELLIA256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:DHE-RSA-SEED-SHA:DHE-DSS-SEED-SHA:DHE-RSA-CAMELLIA128-SHA:DHE-DSS-CAMELLIA128-SHA:DHE-PSK-AES256-GCM-SHA384:DHE-PSK-CHACHA20-POLY1305:ECDHE-PSK-CHACHA20-POLY1305:DHE-PSK-AES256-CCM8:DHE-PSK-AES256-CCM:DHE-PSK-ARIA256-GCM-SHA384:DHE-PSK-AES128-GCM-SHA256:DHE-PSK-AES128-CCM8:DHE-PSK-AES128-CCM:DHE-PSK-ARIA128-GCM-SHA256:ECDHE-PSK-AES256-CBC-SHA384:ECDHE-PSK-AES256-CBC-SHA:DHE-PSK-AES256-CBC-SHA384:DHE-PSK-AES256-CBC-SHA:ECDHE-PSK-CAMELLIA256-SHA384:DHE-PSK-CAMELLIA256-SHA384:ECDHE-PSK-AES128-CBC-SHA256:ECDHE-PSK-AES128-CBC-SHA:DHE-PSK-AES128-CBC-SHA256:DHE-PSK-AES128-CBC-SHA:ECDHE-PSK-CAMELLIA128-SHA256:DHE-PSK-CAMELLIA128-SHA256:";
         
-        iteration(cipher_list_tls1_2);
+        iteration(ciphers_forward_secrecy);
 
-        
-        
-
-        /*cipherList string rule:
-            1. no NULL
-            2. no same as the provided three
-            3. TLS_AES_256_GCM_SHA384 and AES256-GCM-SHA384 are different, the later did not mention the authentication nor key exchange
-        */
-       
-       /*machenims of how servere choosing a cipher:
-            1. many vary each time
-            2, may be none
-        */
-
-        //1. source for non foward secrecy.
-        //2. time 0RTT-time to fisrt byte last byte come back
-        //3. session resumption
-        
         exit(0);
 }
+
+
+//2. time 0RTT-time to fisrt byte last byte come back
+//3. session resumption

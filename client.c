@@ -132,20 +132,34 @@ int ip_connect_to_host(char *ip){
 SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     int err;
     SSL_CTX *ctx;
-
+    SSL_CONF_CTX *cctx;
+    
     ctx = SSL_CTX_new(meth);
     if(!ctx){
         printf("Error SSL_CTX_new.\n");
         exit(0);
     }
+    
+    /*set security level*/
+    SSL_CTX_set_security_level(ctx, 0);
+    
+//    cctx = SSL_CONF_CTX_new();
+//    SSL_CONF_cmd(cctx, "MinProtocol", "SSL3_VERSION");
+//    SSL_CONF_CTX_set_ssl_ctx(cctx, ctx);
+//    if(!SSL_CONF_CTX_finish(cctx)) {
+//            ERR_print_errors_fp(stderr);
+//            err_exit("Finish error\n");
+//    }
+    
     return ctx;
 }
 
 SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     /*SSL3_VERSION, 769:TLS1_VERSION, 770:TLS1_1_VERSION, 771:TLS1_2_VERSION, 772:TLS1_3_VERSION*/
+    
     int err;
-    int minVersion = SSL3_VERSION;
-    int maxVersion = SSL3_VERSION;
+    int minVersion = TLS1_3_VERSION;
+    int maxVersion = TLS1_3_VERSION;
 
     err = SSL_CTX_set_min_proto_version(ctx,minVersion);
     if(err==0)
@@ -345,28 +359,28 @@ void get_server_cipher_list(){
 
 }
 
+
 void send_early_data(SSL *ssl){
-    
+
     //shut down and reconnect
-    SSL_shutdown(ssl);
-    int ret;
-    SSL_SESSION *ses;
-    ret = SSL_connect(ssl);
+    // SSL_shutdown(ssl);
+    // int ret;
+    // SSL_SESSION *ses;
+    // ret = SSL_connect(ssl);
     
     /*for 0-RTT, the session must be resumable, check it before send data */
     //uint32_t
-    if(SSL_SESSION_is_resumable(ses) == 1){
-        printf("can be used to resume a session\n");
-        if(SSL_SESSION_get_max_early_data(ses) == 0){
-            err_exit("session cannot be used\n");
-        }
-    } else {
-        printf("can't be used to resume a session\n");
-        unresumable++;
-    }
+    // if(SSL_SESSION_is_resumable(ses) == 1){
+    //     printf("can be used to resume a session\n");
+    //     if(SSL_SESSION_get_max_early_data(ses) == 0){
+    //         err_exit("session cannot be used\n");
+    //     }
+    // } else {
+    //     printf("can't be used to resume a session\n");
+    //     unresumable++;
+    // }
     
 }
-
 
 void iteration(const char* cipher_list){
 
@@ -383,7 +397,7 @@ void iteration(const char* cipher_list){
     
     get_hosts(host);
     
-    for(int i = 0; i < 100; i++){
+    for(int i = 0; i < 1; i++){
        
         //hostname = host[i]
         hostname_to_ip(host[i], &ip);
@@ -447,7 +461,7 @@ void iteration(const char* cipher_list){
         
         //SSL_set_psk_client_callback(ssl, SSL_psk_client_cb_func);
         
-        //send_early_data(ssl);
+        send_early_data(ssl);
         
         //SSL_SESSION_free(ses);
         close(socketfd);

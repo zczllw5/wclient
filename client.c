@@ -141,7 +141,7 @@ SSL_CTX *initial_ctx(const SSL_METHOD *meth){
     }
     
     /*set security level*/
-    SSL_CTX_set_security_level(ctx, 0);
+    //SSL_CTX_set_security_level(ctx, 0);
     
 //    cctx = SSL_CONF_CTX_new();
 //    SSL_CONF_cmd(cctx, "MinProtocol", "SSL3_VERSION");
@@ -158,7 +158,7 @@ SSL_CTX *set_protocol_version(SSL_CTX *ctx){
     /*SSL3_VERSION, 769:TLS1_VERSION, 770:TLS1_1_VERSION, 771:TLS1_2_VERSION, 772:TLS1_3_VERSION*/
     
     int err;
-    int minVersion = TLS1_3_VERSION;
+    int minVersion = TLS1_1_VERSION;
     int maxVersion = TLS1_3_VERSION;
 
     err = SSL_CTX_set_min_proto_version(ctx,minVersion);
@@ -287,6 +287,31 @@ void ssl_error_exit(SSL *ssl, int ret)
     exit(0);
 }
 
+int do_early_data_transfer(SSL *ssl)
+{
+    char *msg_req = "Hello, I am client early data!";
+    char buf[10000] = {0};
+    size_t written;
+    int ret;
+
+    ret = SSL_write_early_data(ssl, msg_req, strlen(msg_req), &written);
+    ssl_error_exit(ssl,ret);
+    if (ret <= 0) {
+    	printf("SSL_write_early_data failed ret=%d\n", ret);
+	return -1;
+    }
+    printf("Early data write sucessed\n");
+
+    ret = SSL_read(ssl, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        printf("SSL_read read early data failed ret=%d\n", ret);
+	return -1;
+    }
+    printf("Early data read '%s'\n", buf);
+
+    return 0;
+}
+
 SSL_SESSION *ssl_connect(SSL* ssl){
 
     int ret;
@@ -382,6 +407,8 @@ void send_early_data(SSL *ssl){
     
 }
 
+
+
 void iteration(const char* cipher_list){
 
     SSL_CTX *ctx;
@@ -391,15 +418,28 @@ void iteration(const char* cipher_list){
     char host[100][50];
     char *hostname = (char *)malloc(sizeof(char)*50);
     const char *sessionCipher;
+    SSL_SESSION *prev_sess = NULL;
+
+    int ret = 0;
     
     meth = TLS_method();
-    ctx = initial_ctx(meth);
+    //ctx = initial_ctx(meth);
     
     get_hosts(host);
     
     for(int i = 0; i < 1; i++){
-       
-        //hostname = host[i]
+       int j;
+        for (j = 0; j < 2; j++) {
+            ctx =initial_ctx(meth);
+        }
+
+        if (i < 1) {
+	        ret = SSL_CTX_set_max_early_data(ctx, SSL3_RT_MAX_PLAIN_LENGTH);
+	        if (ret != 1) {
+	    	    err_exit("CTX set max early data failed\n");
+	        }
+	    }
+
         hostname_to_ip(host[i], &ip);
         printf("%i. %s resolved to %s ", i, host[i], ip);
         
@@ -410,13 +450,24 @@ void iteration(const char* cipher_list){
         set_protocol_version(ctx);
         
         set_cipher_suites(ctx, cipher_list);
-         
         
         SSL *ssl;
         ssl = initialize_ssl_bio_propare_connection(ctx, socketfd);
         
+        if (prev_sess != NULL) {
+            SSL_set_session(ssl, prev_sess);
+            SSL_SESSION_free(prev_sess);
+            prev_sess = NULL;
+        }        
+
         //display_client_cipher_list(ssl);
-        
+        if(j >= 1){
+            if (do_early_data_transfer(ssl)) {
+                err_exit("Early data transfer over TLS failed\n");
+            }
+	        printf("Early data transfer over TLS suceeded\n");
+        }            
+
         if(i ==0 | i == 28 || i == 42 || i == 49 ||i == 51 || i == 53 ||i == 72 || i == 77 || i == 92 || i == 95){
             int err = SSL_set_tlsext_host_name(ssl, host[i]);
         } else  {
@@ -427,7 +478,7 @@ void iteration(const char* cipher_list){
             int err = SSL_set_tlsext_host_name(ssl,url);
             
             if(err == 1){
-               printf("set hostname success\n");
+            printf("set hostname success\n");
                 const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
                 printf("servername: %s\n", servername);
             }

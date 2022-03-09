@@ -14,7 +14,7 @@
 #include "openssl/err.h"
 
 //#include "test_common.h"
-#define MSG1_REQ "GET /echo HTTP/1.1\r\nHOST: google.com\r\n\r\n"
+#define MSG1_REQ "GET https://www.google.com/search?q=hello&sxsrf=APq-WBvF50Wte88XCtZ3D5B867T4VN_l4A%3A1646834618219&source=hp&ei=urMoYoLUC4_EgQar_r74Ag&iflsig=AHkkrS4AAAAAYijBynwpukq-B5K1jGnjCGzuAG7q-5ou&ved=0ahUKEwiCma-Dmbn2AhUPYsAKHSu_Dy8Q4dUDCAk&uact=5&oq=hello&gs_lcp=Cgdnd3Mtd2l6EAMyBAgjECcyDQguELEDEMcBENEDEAoyCwguEIAEELEDENQCMg4IABCABBCxAxCDARDJAzIFCAAQkgMyCAgAEIAEELEDMggIABCABBCxAzIICAAQgAQQsQMyCAgAEIAEELEDMgUIABCABDoHCCMQ6gIQJzoLCAAQgAQQsQMQgwE6DgguEIAEELEDEMcBEKMCOgoIABCxAxCDARAKOhEILhCABBCxAxCDARDHARCjAjoOCC4QgAQQsQMQxwEQrwE6CAguEIAEELEDOggILhCABBDUAjoFCC4QgAQ6DgguEIAEELEDEMcBENEDUMcHWJ4MYIEOaAFwAHgAgAFoiAGqA5IBAzQuMZgBAKABAbABCg&sclient=gws-wiz HTTP/1.1\r\nHOST: google.com\r\n\r\n"
 #define MSG2_REQ "GET /main.html HTTP/1.1\r\nHOST: google.com\r\n\r\n"
 
 #define CAFILE1 "./certs/ECC_Prime256_Certs/rootcert.pem"

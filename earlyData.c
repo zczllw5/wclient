@@ -13,24 +13,19 @@
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 
-//#include "test_common.h"
-#define MSG1_REQ "GET https://www.google.com/search?q=hello&sxsrf=APq-WBvF50Wte88XCtZ3D5B867T4VN_l4A%3A1646834618219&source=hp&ei=urMoYoLUC4_EgQar_r74Ag&iflsig=AHkkrS4AAAAAYijBynwpukq-B5K1jGnjCGzuAG7q-5ou&ved=0ahUKEwiCma-Dmbn2AhUPYsAKHSu_Dy8Q4dUDCAk&uact=5&oq=hello&gs_lcp=Cgdnd3Mtd2l6EAMyBAgjECcyDQguELEDEMcBENEDEAoyCwguEIAEELEDENQCMg4IABCABBCxAxCDARDJAzIFCAAQkgMyCAgAEIAEELEDMggIABCABBCxAzIICAAQgAQQsQMyCAgAEIAEELEDMgUIABCABDoHCCMQ6gIQJzoLCAAQgAQQsQMQgwE6DgguEIAEELEDEMcBEKMCOgoIABCxAxCDARAKOhEILhCABBCxAxCDARDHARCjAjoOCC4QgAQQsQMQxwEQrwE6CAguEIAEELEDOggILhCABBDUAjoFCC4QgAQ6DgguEIAEELEDEMcBENEDUMcHWJ4MYIEOaAFwAHgAgAFoiAGqA5IBAzQuMZgBAKABAbABCg&sclient=gws-wiz HTTP/1.1\r\nHOST: google.com\r\n\r\n"
-#define MSG2_REQ "GET /main.html HTTP/1.1\r\nHOST: google.com\r\n\r\n"
-
-#define CAFILE1 "./certs/ECC_Prime256_Certs/rootcert.pem"
+#define MSG1_REQ "GET /index.html HTTP/1.1\r\nHOST: google.com\r\n\r\n"
 
 void get_error()
 {
     unsigned long error;
     const char *file = NULL, *func = "";
     int line= 0;
-#ifdef WITH_OSSL_111
-    error = ERR_get_error_line(&file, &line);
-#elif defined WITH_OSSL_300
-    error = ERR_get_error_all(&file, &line, &func, NULL, NULL);
-#endif
-    printf("Error reason=%d on [%s:%d:%s]\n", ERR_GET_REASON(error),
-           file, line, func);
+    #ifdef WITH_OSSL_111
+        error = ERR_get_error_line(&file, &line);
+    #elif defined WITH_OSSL_300
+        error = ERR_get_error_all(&file, &line, &func, NULL, NULL);
+    #endif
+        printf("Error reason=%d on [%s:%d:%s]\n", ERR_GET_REASON(error),file, line, func);
 }
 
 int do_tcp_connection(const char *server_ip, uint16_t port)
@@ -85,18 +80,6 @@ SSL_CTX *create_context()
     }
 
     printf("SSL context created\n");
-
-    // if (SSL_CTX_load_verify_locations(ctx, CAFILE1, NULL) != 1) {
-    //     printf("Load CA cert failed\n");
-    //     goto err_handler;
-    // }
-
-    // printf("Loaded cert %s on context\n", CAFILE1);
-
-    // SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
-    // SSL_CTX_set_verify_depth(ctx, 5);
-
-    printf("SSL context configurations completed\n");
 
     return ctx;
 err_handler:
@@ -169,7 +152,6 @@ void ssl_error_exit(SSL *ssl, int ret)
 int do_early_data_transfer(SSL *ssl)
 {
     char *msg_req = "Hello, I am client early data!";
-    //char *msg_req = "Hello, I am client early data!";
     char buf[100000] = {0};
     size_t written;
     int ret;
@@ -182,7 +164,6 @@ int do_early_data_transfer(SSL *ssl)
     }
     printf("Early data write sucessed\n");
 
-    
     ret = SSL_read(ssl, buf, sizeof(buf) - 1);
     //ssl_error_exit(ssl,SSL_read(ssl, buf, sizeof(buf) - 1));
     if (ret <= 0) {
@@ -196,26 +177,23 @@ int do_early_data_transfer(SSL *ssl)
 
 int do_data_transfer(SSL *ssl)
 {
-    const char *msg_req[] = {MSG1_REQ, MSG2_REQ};
-    const char *req;
     char buf[10000] = {0};
     int ret, i;
-    for (i = 0; i < sizeof(msg_req)/sizeof(msg_req[0]); i++) {
-        req = msg_req[i];
-        ret = SSL_write(ssl, req, strlen(req));
-        if (ret <= 0) {
-            printf("SSL_write failed ret=%d\n", ret);
-            return -1;
-        }
-        printf("SSL_write[%d] sent %s\n", ret, req);
 
-        ret = SSL_read(ssl, buf, sizeof(buf) - 1);
-        if (ret <= 0) {
-            printf("SSL_read failed ret=%d\n", ret);
-            return -1;
-        }
-        printf("SSL_read[%d] %s\n", ret, buf);
+    ret = SSL_write(ssl, MSG1_REQ, strlen(MSG1_REQ));
+    if (ret <= 0) {
+        printf("SSL_write failed ret=%d\n", ret);
+        return -1;
+    }    
+    printf("SSL_write[%d] sent %s\n", ret, MSG1_REQ);
+
+    ret = SSL_read(ssl, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+        printf("SSL_read failed ret=%d\n", ret);
+        return -1;
     }
+    printf("SSL_read[%d] %s\n", ret, buf);
+
     return 0;
 }
 
@@ -232,20 +210,20 @@ int tls13_client(int con_count)
     for (i = 0; i < con_count; i++) {
         ctx = create_context();
         if (!ctx) {
-	    return -1;
-    }
+	        return -1;
+        }
 
-	if (i < 1) {
-	    ret = SSL_CTX_set_max_early_data(ctx, SSL3_RT_MAX_PLAIN_LENGTH);
-	    if (ret != 1) {
-	    	printf("CTX set max early data failed\n");
-		goto err_handler;
-	    }
-	}
+        if (i < 1) {
+            ret = SSL_CTX_set_max_early_data(ctx, SSL3_RT_MAX_PLAIN_LENGTH);
+            if (ret != 1) {
+                printf("CTX set max early data failed\n");
+            goto err_handler;
+            }
+        }
 
         ssl = create_ssl_object(ctx);
         if (!ssl) {
-	    goto err_handler;
+	        goto err_handler;
         }
 
         fd = SSL_get_fd(ssl);
@@ -256,30 +234,29 @@ int tls13_client(int con_count)
             prev_sess = NULL;
         }
 
-	if (i >= 1) {
-	    if (do_early_data_transfer(ssl)) {
-	        printf("Early data transfer over TLS failed\n");
-	        goto err_handler;
-	    }
-	    printf("Early data transfer over TLS suceeded\n");
+        if (i >= 1) {
+            if (do_early_data_transfer(ssl)) {
+                printf("Early data transfer over TLS failed\n");
+                goto err_handler;
+            }
+            printf("Early data transfer over TLS suceeded\n");
         }
 
         ret = SSL_connect(ssl);
         if (ret != 1) {
             printf("SSL connect failed%d\n", ret);
-	    get_error();
+	        get_error();
             goto err_handler;
         }
         printf("SSL connect succeeded\n");
 
-        const char* version = SSL_get_version(ssl);
-        printf("ssl protocol version: %s\n", version);
-
-        if (do_data_transfer(ssl)) {
-            printf("Data transfer over TLS failed\n");
-            goto err_handler;
+        if(i < 1){
+            if (do_data_transfer(ssl)) {
+                printf("Data transfer over TLS failed\n");
+                goto err_handler;
+            }
+            printf("Data transfer over TLS succeeded\n\n");
         }
-        printf("Data transfer over TLS succeeded\n\n");
 
         prev_sess = SSL_get1_session(ssl);
         if (!prev_sess) {
@@ -291,8 +268,8 @@ int tls13_client(int con_count)
         SSL_shutdown(ssl);
         SSL_free(ssl);
         ssl = NULL;
-	SSL_CTX_free(ctx);
-	ctx = NULL;
+	    SSL_CTX_free(ctx);
+	    ctx = NULL;
         close(fd);
         fd = -1;
     }

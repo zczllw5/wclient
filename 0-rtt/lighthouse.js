@@ -12,29 +12,106 @@ function get_hosts(arr){
 
 hostsArr = get_hosts(hostsArr);
 
-for (let i = 0; i < 1; i++) {
-    url = "https://www.".concat(hostsArr[i]);
-    console.log(url);
-    console.log(typeof url);
-    var fcp = 0;
+function concat_http(arr){
+    for (let i = 0; i < arr.length; i++) {
+        arr[i] = "https://www.".concat(arr[i]);
+    }
+    return arr;
+}
 
-    for (let j = 0; j < 1; j++) {
-        (async () => {
-                const chrome = await chromeLauncher.launch({chromeFlags: ['--headless']});
-                const options = {logLevel: 'info', output: 'json', onlyCategories: ['performance'], port: chrome.port};
-                const runnerResult = await lighthouse(url, options);
-            
-                // `.report` is the HTML report as a string
-                const reportHtml = runnerResult.report;
-                fs.writeFileSync('lhreport.json', reportHtml);
+hostsArr = concat_http(hostsArr);
+//console.log(hostsArr);
 
-                console.log('lhr.audits:', runnerResult.lhr.audits["first-contentful-paint"].score);
-                fcp = runnerResult.lhr.audits["first-contentful-paint"].score;
-                console.log('fcp: ',fcp);
-                await chrome.kill();
-            })();
+var sum = 0;
+
+async function use_lighthouse(url){
+    console.log("url: ", url);
+    const chrome = await chromeLauncher.launch({chromeFlags: ['--headless']});
+    const options = {logLevel: 'info', output: 'json', onlyCategories: ['performance'], port: chrome.port};
+    // const resultName = await hostsArr[i].concat(j);
+    // await console.log(resultName);
+    
+    const runnerResult = await lighthouse(url, options);
+
+
+    fcp = await runnerResult.lhr.audits["first-contentful-paint"].score;
+    //console.log('lhr.audits.FCP: ', fcp);
+        
+    await chrome.kill();
+    return fcp;
+};
+
+//use_lighthouse(hostsArr[0]);
+
+// for (let j = 0; j < 3; j++) {
+//     use_lighthouse(hostsArr[j]);
+// }
+
+// async function sum_score_from_iteration(res){
+//     for await(let res of hostsArr){
+//         console.log("res: ", res);
+//     }
+//     return sum;
+// }
+
+
+async function* asyncGenerator() {
+    let j = 0;
+    while (j < 100) {
+        yield use_lighthouse(hostsArr[0]);
+        j++;
     }
 }
+(async () => {
+    var sum = 0;
+    for await (var num of asyncGenerator()) {
+        console.log("score is: ", num);
+        sum += num;
+        console.log("score sum is: ", sum);
+    }
+})();
+
+// async function* asyncGenerator() { 
+//     let j = 0;
+//     while (j < 100) {
+//         yield use_lighthouse(hostsArr[j]);
+//         j++;
+//     }
+// }
+// (async () => {
+//     for await (var num of asyncGenerator()) {
+        
+//         num += num;
+//         console.log(num);
+//     }
+// })();
+
+
+
+
+
+//sum_score_from_iteration(sum);
+
+// async function* asyncGenerator() {
+//     let i = 0;
+//     while (i < 3) {
+//         yield i++;
+//     }
+// }
+  
+// (async () => {
+// for await (var num of asyncGenerator()) {
+    
+//     num += num;
+//     console.log(num);
+// }
+// })();
+
+
+
+
+    
+
 
 
 

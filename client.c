@@ -105,26 +105,27 @@ void hostname_to_ip(char hostname[100], char **ip)
     //return 0;
 }
 
-int ip_connect_to_host(char *ip){
+int ip_connect_to_host(char *ip)
+{
+    struct sockaddr_in socketaddr;
     int err;
     int socketfd;
-    struct sockaddr_in socketaddr;
 
     socketaddr.sin_family=AF_INET;
     socketaddr.sin_addr.s_addr=inet_addr(ip);
     socketaddr.sin_port=htons(PORT); //host to network short
 
     socketfd=socket(AF_INET,SOCK_STREAM,0);
-        if(socketfd == -1)
-            err_exit("socket error");
+    if(socketfd == -1)
+        err_exit("socket error");
         
     err = connect(socketfd, (struct sockaddr *)&socketaddr, sizeof(socketaddr));
         if(err<0) {
             printf("Socket returned error #%i,program terminated\n",errno);
             exit(0);
         }
-        //else if(err ==0)
-            //printf("TCP/IP connected!\n");
+        else if(err ==0)
+            printf("TCP/IP connected!\n");
 
     return socketfd;
 }
@@ -460,13 +461,7 @@ void iteration(const char* cipher_list){
             prev_sess = NULL;
         }        
 
-        //display_client_cipher_list(ssl);
-        if(j >= 1){
-            if (do_early_data_transfer(ssl)) {
-                err_exit("Early data transfer over TLS failed\n");
-            }
-	        printf("Early data transfer over TLS suceeded\n");
-        }            
+        //display_client_cipher_list(ssl);        
 
         if(i ==0 | i == 28 || i == 42 || i == 49 ||i == 51 || i == 53 ||i == 72 || i == 77 || i == 92 || i == 95){
             int err = SSL_set_tlsext_host_name(ssl, host[i]);
@@ -512,7 +507,7 @@ void iteration(const char* cipher_list){
         
         //SSL_set_psk_client_callback(ssl, SSL_psk_client_cb_func);
         
-        send_early_data(ssl);
+        //send_early_data(ssl);
         
         //SSL_SESSION_free(ses);
         close(socketfd);

@@ -20,99 +20,51 @@ function concat_http(arr){
 }
 
 hostsArr = concat_http(hostsArr);
-//console.log(hostsArr);
-
-var sum = 0;
 
 async function use_lighthouse(url){
     console.log("url: ", url);
     const chrome = await chromeLauncher.launch({chromeFlags: ['--headless']});
     const options = {logLevel: 'info', output: 'json', onlyCategories: ['performance'], port: chrome.port};
-    // const resultName = await hostsArr[i].concat(j);
-    // await console.log(resultName);
-    
     const runnerResult = await lighthouse(url, options);
 
+    const reportHtml = runnerResult.report;
+    fs.writeFileSync('lhreport.json', reportHtml);
 
     fcp = await runnerResult.lhr.audits["first-contentful-paint"].score;
+    lcp = await runnerResult.lhr.audits["largest-contentful-paint"].score;
+    tti = await runnerResult.lhr.audits["interactive"].score;
     //console.log('lhr.audits.FCP: ', fcp);
-        
+    //console.log('lhr.audits.LCP: ', lcp);
+    //console.log('lhr.audits.TTI: ', tti);
+
     await chrome.kill();
-    return fcp;
+    return [fcp,lcp,tti];
 };
-
-//use_lighthouse(hostsArr[0]);
-
-// for (let j = 0; j < 3; j++) {
-//     use_lighthouse(hostsArr[j]);
-// }
-
-// async function sum_score_from_iteration(res){
-//     for await(let res of hostsArr){
-//         console.log("res: ", res);
-//     }
-//     return sum;
-// }
-
 
 async function* asyncGenerator() {
     let j = 0;
-    while (j < 100) {
+    while (j < 10) {
         yield use_lighthouse(hostsArr[0]);
         j++;
     }
 }
 (async () => {
-    var sum = 0;
-    for await (var num of asyncGenerator()) {
-        console.log("score is: ", num);
-        sum += num;
-        console.log("score sum is: ", sum);
+    var fcp_sum =0;
+    var lcp_sum = 0; 
+    var tti_sum = 0;
+    for await (var res of asyncGenerator()) {
+
+        fcp_sum += res[0];
+        lcp_sum += res[1];
+        tti_sum += res[2];
+        console.log("[fcp,lcp,tti]: ", res[0], res[1], res[2]);
+        console.log("[fcp,lcp,tti]: ", fcp_sum,  lcp_sum, tti_sum);
     }
 })();
 
-// async function* asyncGenerator() { 
-//     let j = 0;
-//     while (j < 100) {
-//         yield use_lighthouse(hostsArr[j]);
-//         j++;
-//     }
+// try {
+//     fs.writeFileSync('/0-RTT/test.txt', fcp);
+//     //file written successfully
+// } catch (err) {
+//     console.error(err);
 // }
-// (async () => {
-//     for await (var num of asyncGenerator()) {
-        
-//         num += num;
-//         console.log(num);
-//     }
-// })();
-
-
-
-
-
-//sum_score_from_iteration(sum);
-
-// async function* asyncGenerator() {
-//     let i = 0;
-//     while (i < 3) {
-//         yield i++;
-//     }
-// }
-  
-// (async () => {
-// for await (var num of asyncGenerator()) {
-    
-//     num += num;
-//     console.log(num);
-// }
-// })();
-
-
-
-
-    
-
-
-
-
-

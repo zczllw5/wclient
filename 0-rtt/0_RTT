@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Name: $1"
+
+run lighthouse https://google.com

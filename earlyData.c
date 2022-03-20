@@ -252,7 +252,7 @@ int do_early_data_transfer(SSL *ssl, char* MSG1_REQ)
             printf("SSL_read read early data failed ret=%d\n", ret);
         return -1;
         }
-        printf("Early data read '%s'\n", buf);
+        printf("Early data read and early data transfer succeed ********************************************************************************************************************************'%s'\n", buf);
         res++;
     }
     
@@ -388,7 +388,8 @@ int iteration(){
             printf("TLS13 client connection failed\n");
             continue;
         }
-        printf("********************************************************************************************************************************\n");
+        printf("\n");
+        //printf("********************************************************************************************************************************\n");
     }
     printf("There are %i early data transport succeeded!\n", res);
     return 0;

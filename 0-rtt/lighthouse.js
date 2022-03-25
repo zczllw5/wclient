@@ -44,7 +44,7 @@ async function use_lighthouse(url){
 async function* asyncGenerator() {
     let j = 0;
     while (j < 100) {
-        yield use_lighthouse(hostsArr[3]);
+        yield use_lighthouse(hostsArr[6]);
         j++;
     }
 }

@@ -298,13 +298,24 @@ void get_session_cipher(SSL_SESSION *ses, const char **sessionCipher){
 
 }
 
+void write_hosts_connected(char *host){
+
+    FILE *fp = fopen("connected.txt", "a");
+    if (fp != NULL)
+    {   
+        host = strcat(host, " ");
+        fputs(host, fp);
+        fclose(fp);
+    }
+}
+
 void counter(const  char* client_cipher_list, const char *sessionCipher){
     
     if(sessionCipher == NULL){
         printf("no cipher to compare");
         return;
     } else if(strstr(client_cipher_list, sessionCipher) != NULL){
-        printf(" IN FS cipher list\n");
+        printf(" IN  cipher list\n");
         inClientCipherList++;
         //("inCount: %i", inCount);
     } else if(strstr(cipher_list_tls1_3, sessionCipher) != NULL){
@@ -346,7 +357,7 @@ void iteration(const char* cipher_list, int minVersion, int maxVersion){
     
     get_hosts(host);
     
-    for(int i = 0; i < 100; i++){
+    for(int i = 17; i < 100; i++){
         SSL *ssl;
         SSL_SESSION *ses;
 
@@ -392,9 +403,9 @@ void iteration(const char* cipher_list, int minVersion, int maxVersion){
         get_session_cipher(ses, &sessionCipher);
         printf(" chosed :%s ", sessionCipher);
 
-        if (sessionCipher != NULL){
-            write_hosts_connected(host[i]);
-        }
+        // if (sessionCipher != NULL){
+        //     write_hosts_connected(host[i]);
+        // }
 
         counter(cipher_list,sessionCipher);
         

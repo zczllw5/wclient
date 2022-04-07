@@ -24,11 +24,11 @@ hostsArr = concat_http(hostsArr);
 async function use_lighthouse(url){
     console.log("url: ", url);
     const chrome = await chromeLauncher.launch({chromeFlags: ['--headless']});
-    const options = {logLevel: 'info', output: 'json', onlyCategories: ['performance'], port: chrome.port};
+    const options = {logLevel: 'info', output: 'json', onlyCategories: ['performance'], port: chrome.port, settings: {disableStorageReset: true}};
     const runnerResult = await lighthouse(url, options);
 
-    const reportHtml = runnerResult.report;
-    fs.writeFileSync('lhreport.json', reportHtml);
+    // const reportHtml = runnerResult.report;
+    // fs.writeFileSync('lhreport.json', reportHtml);
 
     fcp = await runnerResult.lhr.audits["first-contentful-paint"].score;
     lcp = await runnerResult.lhr.audits["largest-contentful-paint"].score;
@@ -41,10 +41,18 @@ async function use_lighthouse(url){
     return [fcp,lcp,tti];
 };
 
+function sleep(ms) {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+}
+
+// console.log(hostsArr[10])
+
 async function* asyncGenerator() {
     let j = 0;
-    while (j < 100) {
-        yield use_lighthouse(hostsArr[6]);
+    while (j < 10) {
+        yield use_lighthouse(hostsArr[10]);
         j++;
     }
 }
@@ -55,16 +63,31 @@ async function* asyncGenerator() {
     for await (var res of asyncGenerator()) {
 
         fcp_sum += res[0];
+        fs.appendFile('walmart_wc_fcp_c.txt', res[0].toString().concat(' '), err => {
+            if (err) {
+              console.error(err)
+              return
+            }
+            //done!
+          })
         lcp_sum += res[1];
+        fs.appendFile('walmart_wc_lcp_c.txt', res[1].toString().concat(' '), err => {
+            if (err) {
+              console.error(err)
+              return
+            }
+            //done!
+          })
         tti_sum += res[2];
+        fs.appendFile('walmart_wc_tti_c.txt', res[2].toString().concat(' '), err => {
+            if (err) {
+              console.error(err)
+              return
+            }
+            //done!
+          })
         console.log("[fcp,lcp,tti]: ", res[0], res[1], res[2]);
         console.log("fcp_sum,lcp_sum,tti-sum: ", fcp_sum,  lcp_sum, tti_sum);
+        await sleep(60000);
     }
 })();
-
-// try {
-//     fs.writeFileSync('/0-RTT/test.txt', fcp);
-//     //file written successfully
-// } catch (err) {
-//     console.error(err);
-// }

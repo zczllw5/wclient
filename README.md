@@ -13,8 +13,11 @@ A simple webclient try to figure out how servers choose ciphers by providing var
 * node `v16.14.0`  
 * lighthouse `9.5.0`  
 
-* Macports    `curl -O https://distfiles.macports.org/MacPorts/MacPorts-2.7.2.tar.bz2`  
-* *           port search --name --glob 'openssl'
+# Installation
+
+* Macports    
+* * `curl -O https://distfiles.macports.org/MacPorts/MacPorts-2.7.2.tar.bz2`  
+* * `port search --name --glob 'openssl'`
 * openssl3    `sudo port install openssl -preforkmpm +workermpm`  
 * lighthouse  `npm install -g lighthouse`  
 
@@ -43,7 +46,7 @@ For early data deplyment:
     openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt  
     openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt  
     ```  
-    
+
 For FCP, LCP, and TTI:  
     `node lighthouse [url]`  
 

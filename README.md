@@ -1,6 +1,6 @@
 # WClient
 
-A program can test for: 1 cipher suites, 2 early data deployment, and 3 first-contentful-paint(FCP), largest-contentful-paint(LCP), (time to)interactive(TTI) under 0-RTT mode  
+A program can test as a client on a server for: 1 cipher suites, 2 early data deployment, and 3 first-contentful-paint(FCP), largest-contentful-paint(LCP), (time to)interactive(TTI) under 0-RTT mode  
 
 ## Software
 

@@ -3,17 +3,17 @@
 A simple webclient try to figure out how servers choose ciphers by providing various cipher suites.
 ## Software
 ### Prerequisites
-Apple clang `12.0.0` 
-clang `1200.0.32.29`  
-openssl `3.0.1`  
-npm `8.3.1`  
-node `v16.14.0`  
-lighthouse `9.5.0`  
+* Apple clang `12.0.0` 
+* clang `1200.0.32.29`  
+* openssl `3.0.1`  
+* npm `8.3.1`  
+* node `v16.14.0`  
+* lighthouse `9.5.0`  
 
-Macports    `curl -O https://distfiles.macports.org/MacPorts/MacPorts-2.7.2.tar.bz2`  
-            `port search --name --glob 'openssl'`  
-openssl3    `sudo port install openssl -preforkmpm +workermpm`  
-lighthouse  `npm install -g lighthouse`  
+* 8Macports    `curl -O https://distfiles.macports.org/MacPorts/MacPorts-2.7.2.tar.bz2`  
+* *           `port search --name --glob 'openssl'`  
+* openssl3    `sudo port install openssl -preforkmpm +workermpm`  
+* lighthouse  `npm install -g lighthouse`  
 
 ### Instructions
 
@@ -30,10 +30,12 @@ For forward-secrecy secure cipher suites:
 For non-forward-secrecy secure cipher suites:  
     `openssl s_client -connect [host:443]  -server [server-name] -tls1_2 -cipher [nonFS]`  
 For early data deplyment:  
-    `host=ssltest.louis.info`  
-    `echo -e "GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n" > request.txt`  
-    `openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt`  
-    `openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt`  
+    ```
+    host=ssltest.louis.info  
+    echo -e "GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n" > request.txt  
+    openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt  
+    openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt  
+    ```
 For FCP, LCP, and TTI:  
     `node lighthouse [url]`  
 

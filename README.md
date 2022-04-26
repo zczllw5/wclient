@@ -1,6 +1,6 @@
 # wclient
 
-A simple webclient try to figure out how servers choose ciphers by providing various cipher suites.
+A program can test for: 1 cipher suites, 2 early data deployment, and 3 first-contentful-paint(FCP), largest-contentful-paint(LCP), (time to)interactive(TTI) under 0-RTT mode  
 
 ## Software
 
@@ -41,7 +41,7 @@ For non-forward-secrecy secure cipher suites:
 
 For early data deplyment:  
 ```
-    host=ssltest.louis.info  
+    host=[hostname]
     echo -e "GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n" > request.txt  
     openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt  
     openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt  

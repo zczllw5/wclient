@@ -40,12 +40,12 @@ For non-forward-secrecy secure cipher suites:
     `openssl s_client -connect [host:443]  -server [server-name] -tls1_2 -cipher [nonFS]`  
 
 For early data deplyment:  
-    ```
+```
     host=ssltest.louis.info  
     echo -e "GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n" > request.txt  
     openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt  
     openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt  
-    ```  
+```  
 
 For FCP, LCP, and TTI:  
     `node lighthouse [url]`  

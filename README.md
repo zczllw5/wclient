@@ -29,7 +29,7 @@ Use client.c for experiment 1 and experiment 2, to run:
 Use earlyDate.c for experiment 3, to run:
 `clang -g -o earlyData -I/opt/local/include/openssl-3 earlyData.c  -L/opt/local/lib/openssl-3 -lssl -lcrypto`  
 
-Use 0-rtt/lighthouse.js for experiment 4  to run:
+Use 0-rtt/lighthouse.js for experiment 4, to run:  
 `node lighthouse.js`   
 
 ## Validation
@@ -49,6 +49,13 @@ For early data deplyment:
 
 For FCP, LCP, and TTI:  
     `node lighthouse [url]`  
+
+```
+    host=ssltest.louis.info  
+    echo -e "GET / HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n\r\n" > request.txt  
+    openssl s_client -connect $host:443 -tls1_3 -sess_out session.pem -ign_eof < request.txt  
+    openssl s_client -connect $host:443 -tls1_3 -sess_in session.pem -early_data request.txt  
+```
 
 
 
